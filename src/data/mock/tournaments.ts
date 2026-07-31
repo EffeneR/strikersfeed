@@ -1,0 +1,51 @@
+/** DEV MOCK DATA — fictional community tournaments. */
+import type { Tournament } from "@/types";
+import { inDays } from "./time";
+
+export const tournaments: Tournament[] = [
+  {
+    id: "tr_scc",
+    slug: "strikers-club-championship",
+    name: "Strikers Club Championship",
+    bannerUrl: "",
+    status: "registration",
+    format: "Single elimination · 32 teams",
+    startDate: inDays(21),
+    endDate: inDays(29),
+    teamCount: 24,
+    maxTeams: 32,
+    prizeDescription: "Community championship · Featured spotlight & winner's crest",
+    organiser: "StrikersFeed",
+    region: "Global",
+  },
+  {
+    id: "tr_rising",
+    slug: "rising-series-cup",
+    name: "Rising Series Cup",
+    bannerUrl: "",
+    status: "upcoming",
+    format: "Group stage + knockouts · 16 teams",
+    startDate: inDays(45),
+    endDate: inDays(52),
+    teamCount: 11,
+    maxTeams: 16,
+    prizeDescription: "Promotion showcase for up-and-coming rosters",
+    organiser: "StrikersFeed",
+    region: "EU / NA",
+  },
+  {
+    id: "tr_community",
+    slug: "community-cup",
+    name: "Community Cup",
+    bannerUrl: "",
+    status: "registration",
+    format: "Open bracket · up to 64 teams",
+    startDate: inDays(60),
+    endDate: inDays(67),
+    teamCount: 38,
+    maxTeams: 64,
+    prizeDescription: "Open to every division — anyone can enter",
+    organiser: "Community",
+    region: "Global",
+  },
+];
