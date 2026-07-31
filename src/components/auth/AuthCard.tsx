@@ -8,6 +8,8 @@ import { useSession } from "@/components/providers/SessionProvider";
 import { Logo } from "@/components/layout/Logo";
 import { siteConfig } from "@/config/site";
 import { accountRoles, type AccountRole } from "@/config/accountRoles";
+import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { signInAction, signUpAction } from "@/lib/auth/actions";
 import { cn } from "@/lib/cn";
 
 interface Field {
@@ -44,11 +46,14 @@ export function AuthCard({ mode }: { mode: "login" | "register" }) {
   const { enterDemo } = useSession();
   const [submitting, setSubmitting] = useState(false);
   const [role, setRole] = useState<AccountRole | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [info, setInfo] = useState<string | null>(null);
   const roleRefs = useRef<Array<HTMLButtonElement | null>>([]);
 
   const isRegister = mode === "register";
   const fields = isRegister ? registerFields(role) : LOGIN_FIELDS;
   const canSubmit = !submitting && (!isRegister || role !== null);
+  const useRealAuth = isSupabaseConfigured();
 
   const selectRole = (index: number) => {
     const clamped = (index + accountRoles.length) % accountRoles.length;
@@ -88,14 +93,47 @@ export function AuthCard({ mode }: { mode: "login" | "register" }) {
     }
   };
 
-  const onSubmit = (e: React.FormEvent) => {
+  const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (isRegister && role === null) return;
+
+    // Capture values synchronously before any await.
+    const data = new FormData(e.currentTarget);
+    const email = String(data.get("email") ?? "");
+    const password = String(data.get("password") ?? "");
+    const displayName = String(data.get("displayName") ?? "");
+
     setSubmitting(true);
-    // DEMO ONLY: no credentials are sent or stored. Start a local demo session,
-    // recording the chosen role so the app can reflect it.
-    enterDemo(role ?? undefined);
+    setError(null);
+    setInfo(null);
+
+    if (!useRealAuth) {
+      // DEMO ONLY: no credentials are sent or stored. Start a local demo session,
+      // recording the chosen role so the app can reflect it.
+      enterDemo(role ?? undefined);
+      router.push("/feed");
+      return;
+    }
+
+    const result =
+      isRegister && role
+        ? await signUpAction({ email, password, displayName, role })
+        : await signInAction({ email, password });
+
+    if (!result.ok) {
+      setError(result.error ?? "Something went wrong. Please try again.");
+      setSubmitting(false);
+      return;
+    }
+
+    if (result.needsConfirmation) {
+      setInfo("Check your email to confirm your account, then sign in.");
+      setSubmitting(false);
+      return;
+    }
+
     router.push("/feed");
+    router.refresh();
   };
 
   return (
@@ -114,15 +152,17 @@ export function AuthCard({ mode }: { mode: "login" | "register" }) {
             : "Sign in to pick up where you left off."}
         </p>
 
-        <div className="mt-4 flex items-start gap-2 rounded-lg border border-accent/30 bg-accent/10 px-3 py-2.5 text-xs text-ink">
-          <Info className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
-          <p>
-            <span className="font-semibold">Demo preview.</span> This form doesn&apos;t
-            create a real account or store credentials — continuing starts a local
-            demo session so you can explore the app. Real sign-in arrives with the
-            Supabase integration.
-          </p>
-        </div>
+        {!useRealAuth && (
+          <div className="mt-4 flex items-start gap-2 rounded-lg border border-accent/30 bg-accent/10 px-3 py-2.5 text-xs text-ink">
+            <Info className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
+            <p>
+              <span className="font-semibold">Demo preview.</span> This form doesn&apos;t
+              create a real account or store credentials — continuing starts a local
+              demo session so you can explore the app. Real sign-in arrives with the
+              Supabase integration.
+            </p>
+          </div>
+        )}
 
         <form className="mt-5 space-y-4" onSubmit={onSubmit}>
           {isRegister && (
@@ -201,6 +241,14 @@ export function AuthCard({ mode }: { mode: "login" | "register" }) {
             <p className="text-center text-xs text-ink-muted">
               Choose an account type to continue.
             </p>
+          )}
+          {error && (
+            <p role="alert" className="text-center text-xs text-live">
+              {error}
+            </p>
+          )}
+          {info && (
+            <p className="text-center text-xs text-accent">{info}</p>
           )}
         </form>
 

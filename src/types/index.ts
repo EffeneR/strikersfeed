@@ -198,6 +198,11 @@ interface BasePost {
   hashtags?: string[];
   mentions?: string[];
   pinned?: boolean;
+  /**
+   * Pre-resolved author. Set for real (DB-backed) posts whose author isn't in
+   * the mock lookup; mock posts leave this undefined and resolve by `authorId`.
+   */
+  author?: AuthorView;
 }
 
 export interface TextPost extends BasePost {

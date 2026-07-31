@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { FeedShell } from "@/components/feed/FeedShell";
 import { FeedRightSidebar } from "@/components/feed/FeedRightSidebar";
 import type { FeedTab } from "@/components/feed/feedState";
+import { getFeedPosts } from "@/lib/posts/queries";
 
 export const metadata: Metadata = {
   title: "Feed",
@@ -14,8 +15,10 @@ export default async function FeedPage({
 }: {
   searchParams: Promise<{ tab?: string }>;
 }) {
-  const params = await searchParams;
+  const [params, posts] = await Promise.all([searchParams, getFeedPosts()]);
   const initialTab: FeedTab = params.tab === "following" ? "following" : "for-you";
 
-  return <FeedShell initialTab={initialTab} rightRail={<FeedRightSidebar />} />;
+  return (
+    <FeedShell initialTab={initialTab} initialPosts={posts} rightRail={<FeedRightSidebar />} />
+  );
 }

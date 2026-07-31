@@ -13,20 +13,20 @@ export function FeedCenter({
   posts,
   onTabChange,
   onClearView,
-  onAddPost,
+  onAddSessionPost,
 }: {
   tab: FeedTab;
   view: FeedView;
   posts: SocialPost[];
   onTabChange: (tab: FeedTab) => void;
   onClearView: () => void;
-  onAddPost: (text: string) => void;
+  onAddSessionPost: (text: string) => void;
 }) {
   const filtered = view !== "all";
 
   return (
     <div className="rounded-xl border border-line bg-background-secondary">
-      <PostComposer onSubmit={onAddPost} />
+      <PostComposer onDemoPost={onAddSessionPost} />
 
       {!filtered ? (
         <div role="tablist" aria-label="Feed tabs" className="flex border-b border-line">

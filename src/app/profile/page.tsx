@@ -8,6 +8,10 @@ import { Avatar } from "@/components/ui/Avatar";
 import { Pill, ProBadge, VerifiedBadge } from "@/components/ui/badges";
 import { FeedPost } from "@/components/feed/posts/FeedPost";
 import { DemoRolePill } from "@/components/profile/DemoRolePill";
+import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { getCurrentUser } from "@/lib/auth/user";
+import { getPostsByAuthor } from "@/lib/posts/queries";
+import { accountRoleLabel } from "@/config/accountRoles";
 
 export const metadata: Metadata = {
   title: "Your Profile",
@@ -23,7 +27,58 @@ function Stat({ label, value }: { label: string; value: string }) {
   );
 }
 
-export default function ProfilePage() {
+export default async function ProfilePage() {
+  // Real signed-in user (Supabase mode) — show their own identity + posts.
+  const realUser = isSupabaseConfigured() ? await getCurrentUser() : null;
+  if (realUser) {
+    const myRealPosts = await getPostsByAuthor(realUser.id);
+    const roleLabel = realUser.role ? accountRoleLabel(realUser.role) : null;
+    return (
+      <PageContainer>
+        <Card className="overflow-hidden">
+          <div className="h-28 bg-gradient-to-br from-surface via-background-secondary to-background sm:h-32" />
+          <div className="px-5 pb-5 sm:px-6">
+            <div className="-mt-10 flex flex-wrap items-end justify-between gap-4">
+              <div className="flex items-end gap-4">
+                <Avatar
+                  name={realUser.displayName ?? "You"}
+                  src={realUser.avatarUrl ?? undefined}
+                  size={80}
+                  className="ring-4 ring-background-secondary"
+                />
+                <div className="pb-1">
+                  <h1 className="font-condensed text-2xl font-bold tracking-wide text-ink sm:text-3xl">
+                    {realUser.displayName ?? "Your profile"}
+                  </h1>
+                  <p className="text-sm text-ink-muted">@{realUser.username ?? "you"}</p>
+                </div>
+              </div>
+              {roleLabel && <Pill tone="accent">{roleLabel}</Pill>}
+            </div>
+            <p className="mt-4 max-w-2xl text-sm text-ink-muted">
+              Welcome to StrikersFeed. Your posts are below — competitive stats and a
+              public profile page arrive in a later slice.
+            </p>
+          </div>
+        </Card>
+
+        <h2 className="mb-3 mt-8 font-condensed text-xl font-bold tracking-wide text-ink">
+          Your posts
+        </h2>
+        <Card className="divide-y divide-line overflow-hidden">
+          {myRealPosts.length > 0 ? (
+            myRealPosts.map((post) => <FeedPost key={post.id} post={post} />)
+          ) : (
+            <p className="px-4 py-10 text-center text-sm text-ink-muted">
+              You haven&apos;t posted yet.
+            </p>
+          )}
+        </Card>
+      </PageContainer>
+    );
+  }
+
+  // --- Demo / mock profile (no real session) ---
   const me = getUser(CURRENT_USER_ID)!;
   const player = getPlayer(CURRENT_USER_ID);
   const team = me.teamId ? getTeam(me.teamId) : undefined;

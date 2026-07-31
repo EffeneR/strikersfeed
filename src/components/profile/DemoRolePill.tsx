@@ -10,7 +10,7 @@ import { Pill } from "@/components/ui/badges";
  * was actually selected — so it stays consistent between server and client.
  */
 export function DemoRolePill() {
-  const { demoRole, ready } = useSession();
-  if (!ready || !demoRole) return null;
-  return <Pill tone="accent">{accountRoleLabel(demoRole)}</Pill>;
+  const { role, ready } = useSession();
+  if (!ready || !role) return null;
+  return <Pill tone="accent">{accountRoleLabel(role)}</Pill>;
 }

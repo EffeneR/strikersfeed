@@ -28,7 +28,7 @@ export function MobileMenu({
   showLoggedIn: boolean;
 }) {
   const pathname = usePathname();
-  const { isAuthenticated, exitDemo } = useSession();
+  const { isAuthenticated, signOut, mode } = useSession();
   const me = getUser(CURRENT_USER_ID);
 
   return (
@@ -134,12 +134,12 @@ export function MobileMenu({
                 <button
                   type="button"
                   onClick={() => {
-                    exitDemo();
+                    signOut();
                     onClose();
                   }}
                   className="text-xs font-medium text-ink-muted hover:text-ink"
                 >
-                  Exit demo
+                  {mode === "supabase" ? "Sign out" : "Exit demo"}
                 </button>
               )}
             </div>

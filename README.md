@@ -90,15 +90,21 @@ design-references/  # supplied design mockups (documentation only)
   **fictional demo content** — nothing is real, live, or persisted.
 - Feed interactions (like, repost, bookmark, poll votes, new posts) use **local
   component state only** and are **not saved** anywhere.
-- Authentication is a **clearly-labelled demo session** (localStorage) — it is
-  **not real auth** and stores/sends no credentials.
+- Authentication runs in **two modes**. With no Supabase project connected it's
+  a **clearly-labelled demo session** (localStorage) — not real auth. Connect a
+  Supabase project (see [`supabase/README.md`](supabase/README.md)) and
+  registration/login switch to **real Supabase auth** automatically, with a
+  `profiles` row keyed by the account role chosen at sign-up.
 
 ## Path to production (Phase 2)
 
-- Wire **Supabase** for auth + data. Env vars are documented in `.env.example`
-  (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, …).
-- Replace mock selectors in `src/data/mock` with provider-backed queries that
-  return the same typed shapes.
+- **Auth — done (foundation).** Real Supabase auth is wired behind
+  `isSupabaseConfigured()`; connect a project via
+  [`supabase/README.md`](supabase/README.md) to activate it. Client factories,
+  session middleware, the `profiles` migration and sign-up/in/out actions live
+  in `src/lib/supabase/` and `src/lib/auth/`.
+- **Next:** replace mock selectors in `src/data/mock` with provider-backed
+  queries that return the same typed shapes (feed, players, teams).
 - Implement additional match sources behind the existing `MatchProvider`
   interface (`src/lib/providers/`) — e.g. a future UUB provider, the StrikersFeed
   tournament engine, or manual community submissions — without UI changes.

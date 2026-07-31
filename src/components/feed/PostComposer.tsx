@@ -1,9 +1,13 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Clapperboard, ImageIcon, ListChecks, Swords } from "lucide-react";
 import { CURRENT_USER_ID, getUser } from "@/data/mock";
 import { Avatar } from "@/components/ui/Avatar";
+import { useSession } from "@/components/providers/SessionProvider";
+import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { createTextPost } from "@/lib/posts/actions";
 import { cn } from "@/lib/cn";
 
 const MAX = 280;
@@ -16,33 +20,65 @@ const OPTIONS = [
 ] as const;
 
 /**
- * Post composer. Phase 1: text posting works and inserts a session-local post.
- * Rich attachments (media/clip/poll/match) are affordances only until the
- * upload + Supabase pipeline lands — no real upload happens and nothing is
- * saved to a backend.
+ * Post composer.
+ * - Supabase mode: creates a real DB text post (server action), then refreshes
+ *   the feed. Draft text is preserved on error; the field resets only on a
+ *   confirmed successful create. Submitting is disabled while in flight.
+ * - Demo mode: inserts a session-local post via `onDemoPost` (Phase 1 behaviour).
+ * Image/Clip/Poll/Match remain affordances until later slices.
  */
-export function PostComposer({ onSubmit }: { onSubmit: (text: string) => void }) {
+export function PostComposer({ onDemoPost }: { onDemoPost: (text: string) => void }) {
+  const router = useRouter();
+  const { displayName } = useSession();
   const [text, setText] = useState("");
   const [note, setNote] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+
   const me = getUser(CURRENT_USER_ID);
+  const avatarName = displayName ?? me?.displayName ?? "You";
 
   const remaining = MAX - text.length;
   const tooLong = remaining < 0;
-  const canPost = text.trim().length > 0 && !tooLong;
+  const canPost = text.trim().length > 0 && !tooLong && !submitting;
 
-  const submit = () => {
+  const submit = async () => {
     if (!canPost) return;
-    onSubmit(text.trim());
+    setError(null);
+
+    if (!isSupabaseConfigured()) {
+      onDemoPost(text.trim());
+      setText("");
+      setNote(null);
+      return;
+    }
+
+    setSubmitting(true);
+    const result = await createTextPost({ body: text.trim() });
+
+    if (result.demo) {
+      onDemoPost(text.trim());
+      setText("");
+      setNote(null);
+      setSubmitting(false);
+      return;
+    }
+    if (!result.ok) {
+      setError(result.error ?? "Couldn't post. Please try again.");
+      setSubmitting(false);
+      return; // preserve the draft
+    }
+
     setText("");
     setNote(null);
+    setSubmitting(false);
+    router.refresh();
   };
 
   return (
     <div className="border-b border-line px-4 py-3">
       <div className="flex gap-3">
-        {me && (
-          <Avatar name={me.displayName} src={me.avatarUrl || undefined} size={44} />
-        )}
+        <Avatar name={avatarName} src={me?.avatarUrl || undefined} size={44} />
         <div className="min-w-0 flex-1">
           <label htmlFor="composer" className="sr-only">
             What&apos;s happening in Strikers Club?
@@ -52,7 +88,7 @@ export function PostComposer({ onSubmit }: { onSubmit: (text: string) => void })
             value={text}
             onChange={(e) => setText(e.target.value)}
             onKeyDown={(e) => {
-              if ((e.metaKey || e.ctrlKey) && e.key === "Enter") submit();
+              if ((e.metaKey || e.ctrlKey) && e.key === "Enter") void submit();
             }}
             rows={2}
             placeholder="What's happening in Strikers Club?"
@@ -60,6 +96,11 @@ export function PostComposer({ onSubmit }: { onSubmit: (text: string) => void })
           />
 
           {note && <p className="mb-1 text-xs text-ink-muted">{note}</p>}
+          {error && (
+            <p role="alert" className="mb-1 text-xs text-live">
+              {error}
+            </p>
+          )}
 
           <div className="mt-1 flex items-center justify-between border-t border-line pt-2">
             <div className="-ml-1.5 flex items-center gap-0.5">
@@ -72,7 +113,7 @@ export function PostComposer({ onSubmit }: { onSubmit: (text: string) => void })
                     aria-label={opt.label}
                     onClick={() =>
                       setNote(
-                        `${opt.label} attachments arrive with the upload pipeline — text posts work now.`,
+                        `${opt.label} attachments arrive in a later slice — text posts work now.`,
                       )
                     }
                     className="flex h-8 items-center gap-1.5 rounded-full px-2 text-xs font-medium text-accent transition-colors hover:bg-accent/10"
@@ -96,11 +137,11 @@ export function PostComposer({ onSubmit }: { onSubmit: (text: string) => void })
               </span>
               <button
                 type="button"
-                onClick={submit}
+                onClick={() => void submit()}
                 disabled={!canPost}
                 className="inline-flex h-9 items-center justify-center rounded-full bg-accent px-5 text-sm font-semibold text-black transition-colors hover:bg-accent-hover disabled:opacity-40 disabled:hover:bg-accent"
               >
-                Post
+                {submitting ? "Posting…" : "Post"}
               </button>
             </div>
           </div>
