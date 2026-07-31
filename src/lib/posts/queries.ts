@@ -1,5 +1,5 @@
-import type { AuthorView, SocialPost, TextPost } from "@/types";
-import { isSupabaseConfigured } from "@/lib/supabase/config";
+import type { AuthorView, MediaAttachment, SocialPost } from "@/types";
+import { isSupabaseConfigured, SUPABASE_URL } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/server";
 import { getForYouPosts } from "@/data/mock";
 
@@ -7,7 +7,9 @@ import { getForYouPosts } from "@/data/mock";
 const SEED_THRESHOLD = 8;
 
 const POST_SELECT =
-  "id, author_id, body, created_at, profiles ( id, username, display_name, avatar_url, role )";
+  "id, author_id, type, body, created_at, " +
+  "profiles ( id, username, display_name, avatar_url, role ), " +
+  "post_media ( storage_path, alt, width, height, position )";
 
 interface ProfileRow {
   id: string;
@@ -15,6 +17,18 @@ interface ProfileRow {
   display_name: string | null;
   avatar_url: string | null;
   role: string | null;
+}
+
+interface MediaRow {
+  storage_path: string | null;
+  alt: string | null;
+  width: number | null;
+  height: number | null;
+  position: number | null;
+}
+
+function publicImageUrl(storagePath: string): string {
+  return `${SUPABASE_URL}/storage/v1/object/public/post-images/${storagePath}`;
 }
 
 function profileToAuthor(profile: ProfileRow | null, authorId: string): AuthorView {
@@ -30,26 +44,45 @@ function profileToAuthor(profile: ProfileRow | null, authorId: string): AuthorVi
   };
 }
 
-function mapPostRow(row: Record<string, unknown>): TextPost {
+function mapPostRow(row: Record<string, unknown>): SocialPost {
   const profile = (Array.isArray(row.profiles) ? row.profiles[0] : row.profiles) as
     | ProfileRow
     | null;
-  return {
+  const author = profileToAuthor(profile, row.author_id as string);
+  const base = {
     id: row.id as string,
-    type: "text",
     authorId: row.author_id as string,
     createdAt: row.created_at as string,
     content: (row.body as string) ?? "",
     stats: { replies: 0, reposts: 0, likes: 0, views: 0, bookmarks: 0 },
-    author: profileToAuthor(profile, row.author_id as string),
+    author,
   };
+
+  const mediaRows = (Array.isArray(row.post_media) ? (row.post_media as MediaRow[]) : [])
+    .filter((m) => m.storage_path)
+    .sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
+
+  if (row.type === "IMAGE" && mediaRows.length > 0) {
+    const media: MediaAttachment[] = mediaRows.map((m, i) => ({
+      id: `${base.id}-${i}`,
+      kind: "image",
+      url: publicImageUrl(m.storage_path as string),
+      alt: m.alt ?? "Posted image",
+      width: m.width ?? undefined,
+      height: m.height ?? undefined,
+      aspectRatio: m.width && m.height ? m.width / m.height : 16 / 9,
+    }));
+    return { ...base, type: "media", media };
+  }
+
+  return { ...base, type: "text" };
 }
 
 /**
  * Feed posts for the "For You" timeline. Reads real DB posts when Supabase is
  * configured (respecting RLS — anonymous readers see public+visible posts) and
- * pads with mock content while real content is still sparse, so the feed is
- * never empty. Falls back entirely to mock data in demo mode / on any error.
+ * pads with mock content while real content is sparse. Falls back entirely to
+ * mock data in demo mode / on any error.
  */
 export async function getFeedPosts(): Promise<SocialPost[]> {
   if (!isSupabaseConfigured()) return getForYouPosts();
@@ -62,20 +95,17 @@ export async function getFeedPosts(): Promise<SocialPost[]> {
     const result = await supabase
       .from("posts")
       .select(POST_SELECT)
-      .eq("type", "TEXT")
+      .in("type", ["TEXT", "IMAGE"])
       .order("created_at", { ascending: false })
       .limit(50);
 
-    // Table missing (migration not run yet) or a transient error → show mock.
     if (result.error || !result.data) return getForYouPosts();
-    data = result.data as Record<string, unknown>[];
+    data = result.data as unknown as Record<string, unknown>[];
   } catch {
     return getForYouPosts();
   }
 
   const realPosts = data.map(mapPostRow);
-
-  // While the platform is new, keep the feed populated with demo content.
   if (realPosts.length >= SEED_THRESHOLD) return realPosts;
   return [...realPosts, ...getForYouPosts()];
 }
@@ -96,7 +126,7 @@ export async function getPostsByAuthor(userId: string): Promise<SocialPost[]> {
       .limit(50);
 
     if (result.error || !result.data) return [];
-    return (result.data as Record<string, unknown>[]).map(mapPostRow);
+    return (result.data as unknown as Record<string, unknown>[]).map(mapPostRow);
   } catch {
     return [];
   }

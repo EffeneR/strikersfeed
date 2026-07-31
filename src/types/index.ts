@@ -175,12 +175,14 @@ export interface PostStats {
 export interface MediaAttachment {
   id: ID;
   kind: "image" | "clip";
-  /** Poster/thumbnail image in Phase 1 (no real video pipeline yet). */
+  /** Public URL for real uploads; empty for generative placeholders. */
   url: string;
   alt: string;
   durationSeconds?: number;
   /** width / height, used to reserve layout space. */
   aspectRatio?: number;
+  width?: number;
+  height?: number;
 }
 
 export interface PollOption {
