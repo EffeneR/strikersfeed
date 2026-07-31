@@ -4,6 +4,8 @@ import { siteConfig } from "@/config/site";
 import { SessionProvider } from "@/components/providers/SessionProvider";
 import { SiteNavbar } from "@/components/layout/SiteNavbar";
 import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
+import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { getCurrentUser } from "@/lib/auth/user";
 import "./globals.css";
 
 const inter = Inter({
@@ -68,13 +70,22 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  const configured = isSupabaseConfigured();
+  // Only touches cookies when a project is connected, so demo builds stay static.
+  const user = configured ? await getCurrentUser() : null;
+
   return (
     <html lang="en" className={`${inter.variable} ${barlow.variable}`}>
       <body className="font-sans antialiased">
-        <SessionProvider>
+        <SessionProvider
+          configured={configured}
+          initialAuthed={!!user}
+          initialRole={user?.role ?? null}
+          initialDisplayName={user?.displayName ?? null}
+        >
           <a
             href="#main-content"
             className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-accent focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-black"

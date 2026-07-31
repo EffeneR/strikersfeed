@@ -102,10 +102,11 @@ function NavSearch() {
 }
 
 function AccountMenu() {
-  const { isAuthenticated, exitDemo } = useSession();
+  const { isAuthenticated, signOut, mode, displayName } = useSession();
   const [open, setOpen] = useState(false);
   const me = getUser(CURRENT_USER_ID);
   if (!me) return null;
+  const shownName = displayName ?? me.displayName;
   return (
     <div className="relative">
       <button
@@ -115,9 +116,9 @@ function AccountMenu() {
         onClick={() => setOpen((v) => !v)}
         className="flex items-center gap-2 rounded-full p-0.5 pr-2 transition-colors hover:bg-surface-hover"
       >
-        <Avatar name={me.displayName} src={me.avatarUrl || undefined} size={32} />
+        <Avatar name={shownName} src={me.avatarUrl || undefined} size={32} />
         <span className="hidden text-sm font-semibold text-ink lg:inline">
-          {me.displayName}
+          {shownName}
         </span>
       </button>
       {open && (
@@ -131,7 +132,7 @@ function AccountMenu() {
           />
           <div className="absolute right-0 top-12 z-50 w-56 overflow-hidden rounded-xl border border-line bg-background-secondary py-1 shadow-pop">
             <div className="px-3 py-2">
-              <p className="text-sm font-semibold text-ink">{me.displayName}</p>
+              <p className="text-sm font-semibold text-ink">{shownName}</p>
               <p className="text-xs text-ink-muted">@{me.username}</p>
             </div>
             <div className="my-1 h-px bg-line" />
@@ -154,12 +155,12 @@ function AccountMenu() {
               <button
                 type="button"
                 onClick={() => {
-                  exitDemo();
+                  signOut();
                   setOpen(false);
                 }}
                 className="block w-full px-3 py-2 text-left text-sm text-ink-muted transition-colors hover:bg-surface-hover"
               >
-                Exit demo session
+                {mode === "supabase" ? "Sign out" : "Exit demo session"}
               </button>
             ) : (
               <Link
