@@ -37,11 +37,15 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
 
     const meta = user.user_metadata as { display_name?: string; role?: string } | undefined;
 
+    // Fall back to the email local-part for a usable @handle until a real
+    // username is set on the profile.
+    const handle = profile?.username ?? user.email?.split("@")[0] ?? null;
+
     return {
       id: user.id,
       email: user.email ?? null,
-      displayName: profile?.display_name ?? meta?.display_name ?? null,
-      username: profile?.username ?? null,
+      displayName: profile?.display_name ?? meta?.display_name ?? handle,
+      username: handle,
       role: (profile?.role ?? meta?.role ?? null) as AccountRole | null,
       avatarUrl: profile?.avatar_url ?? null,
     };

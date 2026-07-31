@@ -102,11 +102,12 @@ function NavSearch() {
 }
 
 function AccountMenu() {
-  const { isAuthenticated, signOut, mode, displayName } = useSession();
+  const { isAuthenticated, signOut, mode, displayName, username } = useSession();
   const [open, setOpen] = useState(false);
   const me = getUser(CURRENT_USER_ID);
   if (!me) return null;
   const shownName = displayName ?? me.displayName;
+  const shownHandle = username ?? me.username;
   return (
     <div className="relative">
       <button
@@ -133,7 +134,7 @@ function AccountMenu() {
           <div className="absolute right-0 top-12 z-50 w-56 overflow-hidden rounded-xl border border-line bg-background-secondary py-1 shadow-pop">
             <div className="px-3 py-2">
               <p className="text-sm font-semibold text-ink">{shownName}</p>
-              <p className="text-xs text-ink-muted">@{me.username}</p>
+              <p className="text-xs text-ink-muted">@{shownHandle}</p>
             </div>
             <div className="my-1 h-px bg-line" />
             {[

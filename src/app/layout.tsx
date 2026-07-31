@@ -85,6 +85,7 @@ export default async function RootLayout({
           initialAuthed={!!user}
           initialRole={user?.role ?? null}
           initialDisplayName={user?.displayName ?? null}
+          initialUsername={user?.username ?? null}
         >
           <a
             href="#main-content"

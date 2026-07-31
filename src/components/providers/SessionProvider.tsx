@@ -45,6 +45,8 @@ interface SessionValue {
   role: AccountRole | null;
   /** Display name from the real profile, when available. */
   displayName: string | null;
+  /** Handle (@username) from the real profile, when available. */
+  username: string | null;
   /** Demo mode only: start the local preview with a chosen role. */
   enterDemo: (role?: AccountRole) => void;
   /** Sign out (Supabase) or clear the demo preview. */
@@ -59,6 +61,7 @@ export interface SessionProviderProps {
   initialAuthed?: boolean;
   initialRole?: AccountRole | null;
   initialDisplayName?: string | null;
+  initialUsername?: string | null;
 }
 
 export function SessionProvider({
@@ -67,12 +70,16 @@ export function SessionProvider({
   initialAuthed = false,
   initialRole = null,
   initialDisplayName = null,
+  initialUsername = null,
 }: SessionProviderProps) {
   const router = useRouter();
   const [isAuthenticated, setAuthenticated] = useState(configured ? initialAuthed : false);
   const [role, setRole] = useState<AccountRole | null>(configured ? initialRole : null);
   const [displayName, setDisplayName] = useState<string | null>(
     configured ? initialDisplayName : null,
+  );
+  const [username, setUsername] = useState<string | null>(
+    configured ? initialUsername : null,
   );
   const [ready, setReady] = useState(configured);
 
@@ -96,7 +103,8 @@ export function SessionProvider({
     setAuthenticated(initialAuthed);
     setRole(initialRole);
     setDisplayName(initialDisplayName);
-  }, [configured, initialAuthed, initialRole, initialDisplayName]);
+    setUsername(initialUsername);
+  }, [configured, initialAuthed, initialRole, initialDisplayName, initialUsername]);
 
   // Supabase mode: keep in sync with the real auth session.
   useEffect(() => {
@@ -153,10 +161,11 @@ export function SessionProvider({
       currentUserId: CURRENT_USER_ID,
       role,
       displayName,
+      username,
       enterDemo,
       signOut,
     }),
-    [isAuthenticated, ready, configured, role, displayName, enterDemo, signOut],
+    [isAuthenticated, ready, configured, role, displayName, username, enterDemo, signOut],
   );
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;
