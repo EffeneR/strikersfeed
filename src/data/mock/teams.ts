@@ -1,6 +1,5 @@
 /** DEV MOCK DATA — fictional teams. See `src/data/config.ts`. */
 import type { Team } from "@/types";
-import { daysAgo } from "./time";
 
 export const teams: Team[] = [
   {

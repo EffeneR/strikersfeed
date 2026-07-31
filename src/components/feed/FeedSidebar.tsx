@@ -53,6 +53,7 @@ export function FeedSidebar({
         </p>
         {feedSidebarNav.map((item) => {
           const Icon = item.icon;
+          const filter = item.filter;
           const active = isActive(item);
           const className = cn(
             "flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
@@ -61,7 +62,7 @@ export function FeedSidebar({
               : "text-ink-muted hover:bg-surface-hover hover:text-ink",
           );
 
-          if (!item.filter) {
+          if (!filter) {
             return (
               <Link key={item.label} href={item.href} className={className}>
                 <Icon className="h-[18px] w-[18px]" />
@@ -76,14 +77,14 @@ export function FeedSidebar({
               type="button"
               aria-pressed={active}
               onClick={() => {
-                if (item.filter === "for-you") {
+                if (filter === "for-you") {
                   onSelectTab("for-you");
                   onSelectView("all");
-                } else if (item.filter === "following") {
+                } else if (filter === "following") {
                   onSelectTab("following");
                   onSelectView("all");
                 } else {
-                  onSelectView(item.filter);
+                  onSelectView(filter);
                 }
               }}
               className={className}
