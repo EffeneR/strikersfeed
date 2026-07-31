@@ -2,18 +2,10 @@
 
 import { useMemo, useState, type ReactNode } from "react";
 import type { SocialPost, TextPost } from "@/types";
-import {
-  CURRENT_USER_ID,
-  DEMO_NOW,
-  getFollowingPosts,
-  getForYouPosts,
-} from "@/data/mock";
+import { CURRENT_USER_ID, DEMO_NOW, followingAuthorIds } from "@/data/mock";
 import { FeedSidebar } from "./FeedSidebar";
 import { FeedCenter } from "./FeedCenter";
 import type { FeedTab, FeedView } from "./feedState";
-
-const forYou = getForYouPosts();
-const following = getFollowingPosts();
 
 function isClip(post: SocialPost): boolean {
   return post.type === "media" && post.media.some((m) => m.kind === "clip");
@@ -21,24 +13,31 @@ function isClip(post: SocialPost): boolean {
 
 export function FeedShell({
   initialTab = "for-you",
+  initialPosts,
   rightRail,
 }: {
   initialTab?: FeedTab;
+  /** "For You" timeline from the server (real DB posts, padded with mock). */
+  initialPosts: SocialPost[];
   rightRail: ReactNode;
 }) {
   const [tab, setTab] = useState<FeedTab>(initialTab);
   const [view, setView] = useState<FeedView>("all");
+  // Demo mode only: locally-composed posts (Supabase mode refreshes instead).
   const [sessionPosts, setSessionPosts] = useState<SocialPost[]>([]);
 
   const posts = useMemo(() => {
-    const base = tab === "following" ? following : forYou;
+    const base =
+      tab === "following"
+        ? initialPosts.filter((p) => followingAuthorIds.includes(p.authorId))
+        : initialPosts;
     const combined = [...sessionPosts, ...base];
     if (view === "clips") return combined.filter(isClip);
     if (view === "bookmarks" || view === "saved") return [];
     return combined;
-  }, [tab, view, sessionPosts]);
+  }, [tab, view, sessionPosts, initialPosts]);
 
-  const addPost = (text: string) => {
+  const addSessionPost = (text: string) => {
     const newPost: TextPost = {
       id: `session_${Date.now()}`,
       type: "text",
@@ -48,7 +47,6 @@ export function FeedShell({
       stats: { replies: 0, reposts: 0, likes: 0, views: 0, bookmarks: 0 },
     };
     setSessionPosts((prev) => [newPost, ...prev]);
-    // Ensure a freshly composed post is visible in the main timeline.
     setView("all");
     setTab("for-you");
   };
@@ -56,19 +54,12 @@ export function FeedShell({
   return (
     <div className="container-shell py-4 lg:py-6">
       <div className="lg:grid lg:grid-cols-[232px_minmax(0,1fr)] lg:gap-6 xl:grid-cols-[232px_minmax(0,1fr)_320px]">
-        {/* Left sidebar */}
         <aside className="hidden lg:block">
           <div className="sticky top-[4.5rem] max-h-[calc(100dvh-5.5rem)] overflow-y-auto scrollbar-slim pb-6">
-            <FeedSidebar
-              tab={tab}
-              view={view}
-              onSelectTab={setTab}
-              onSelectView={setView}
-            />
+            <FeedSidebar tab={tab} view={view} onSelectTab={setTab} onSelectView={setView} />
           </div>
         </aside>
 
-        {/* Center feed */}
         <div className="min-w-0">
           <FeedCenter
             tab={tab}
@@ -76,11 +67,10 @@ export function FeedShell({
             posts={posts}
             onTabChange={setTab}
             onClearView={() => setView("all")}
-            onAddPost={addPost}
+            onAddSessionPost={addSessionPost}
           />
         </div>
 
-        {/* Right rail (server-rendered, static) */}
         <aside className="hidden xl:block">
           <div className="sticky top-[4.5rem] max-h-[calc(100dvh-5.5rem)] overflow-y-auto scrollbar-slim pb-6">
             {rightRail}

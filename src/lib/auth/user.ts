@@ -20,28 +20,33 @@ export interface CurrentUser {
 export async function getCurrentUser(): Promise<CurrentUser | null> {
   if (!isSupabaseConfigured()) return null;
 
-  const supabase = await createClient();
-  if (!supabase) return null;
+  try {
+    const supabase = await createClient();
+    if (!supabase) return null;
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return null;
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return null;
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("username, display_name, role, avatar_url")
-    .eq("id", user.id)
-    .maybeSingle();
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("username, display_name, role, avatar_url")
+      .eq("id", user.id)
+      .maybeSingle();
 
-  const meta = user.user_metadata as { display_name?: string; role?: string } | undefined;
+    const meta = user.user_metadata as { display_name?: string; role?: string } | undefined;
 
-  return {
-    id: user.id,
-    email: user.email ?? null,
-    displayName: profile?.display_name ?? meta?.display_name ?? null,
-    username: profile?.username ?? null,
-    role: (profile?.role ?? meta?.role ?? null) as AccountRole | null,
-    avatarUrl: profile?.avatar_url ?? null,
-  };
+    return {
+      id: user.id,
+      email: user.email ?? null,
+      displayName: profile?.display_name ?? meta?.display_name ?? null,
+      username: profile?.username ?? null,
+      role: (profile?.role ?? meta?.role ?? null) as AccountRole | null,
+      avatarUrl: profile?.avatar_url ?? null,
+    };
+  } catch {
+    // Supabase unreachable / transient error — treat as signed out.
+    return null;
+  }
 }

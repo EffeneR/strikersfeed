@@ -32,7 +32,7 @@ function PostBody({ post }: { post: SocialPost }) {
 
 /** Renders any {@link SocialPost} — the single entry point used by the feed. */
 export function FeedPost({ post }: { post: SocialPost }) {
-  const author = resolveAuthor(post.authorId);
+  const author = post.author ?? resolveAuthor(post.authorId);
   return (
     <article className="px-4 py-4 transition-colors hover:bg-surface/40">
       <PostAuthor

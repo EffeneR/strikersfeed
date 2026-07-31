@@ -28,8 +28,13 @@ export async function updateSession(request: NextRequest): Promise<NextResponse>
     },
   });
 
-  // Touch the user to trigger a token refresh when needed.
-  await supabase.auth.getUser();
+  // Touch the user to trigger a token refresh when needed. Never let a transient
+  // Supabase/network error break every request — just pass through.
+  try {
+    await supabase.auth.getUser();
+  } catch {
+    /* ignore — session simply isn't refreshed this request */
+  }
 
   return response;
 }
