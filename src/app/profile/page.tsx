@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/Card";
 import { Avatar } from "@/components/ui/Avatar";
 import { Pill, ProBadge, VerifiedBadge } from "@/components/ui/badges";
 import { FeedPost } from "@/components/feed/posts/FeedPost";
+import { DemoRolePill } from "@/components/profile/DemoRolePill";
 
 export const metadata: Metadata = {
   title: "Your Profile",
@@ -53,9 +54,12 @@ export default function ProfilePage() {
                 <p className="text-sm text-ink-muted">@{me.username}</p>
               </div>
             </div>
-            <span className="rounded-full border border-line px-4 py-2 text-xs font-medium text-ink-muted">
-              You · demo profile
-            </span>
+            <div className="flex items-center gap-2">
+              <DemoRolePill />
+              <span className="rounded-full border border-line px-4 py-2 text-xs font-medium text-ink-muted">
+                You · demo profile
+              </span>
+            </div>
           </div>
 
           {me.bio && <p className="mt-4 max-w-2xl text-sm text-ink">{me.bio}</p>}
