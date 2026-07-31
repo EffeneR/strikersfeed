@@ -1,10 +1,21 @@
 "use client";
 
 import { useState } from "react";
-import { Link2, MoreHorizontal, VolumeX } from "lucide-react";
+import { Link2, MoreHorizontal, Pencil, Trash2, VolumeX } from "lucide-react";
 
-/** Lightweight per-post overflow menu. Actions are local-only in Phase 1. */
-export function PostMenu({ authorHandle }: { authorHandle: string }) {
+/**
+ * Per-post overflow menu. Copy-link / mute are always available; Edit + Delete
+ * appear only when handlers are supplied (i.e. the viewer owns the post).
+ */
+export function PostMenu({
+  authorHandle,
+  onEdit,
+  onDelete,
+}: {
+  authorHandle: string;
+  onEdit?: () => void;
+  onDelete?: () => void;
+}) {
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
 
@@ -18,6 +29,11 @@ export function PostMenu({ authorHandle }: { authorHandle: string }) {
       /* clipboard may be blocked — ignore */
     }
     setOpen(false);
+  };
+
+  const runAction = (fn?: () => void) => {
+    setOpen(false);
+    fn?.();
   };
 
   return (
@@ -46,6 +62,25 @@ export function PostMenu({ authorHandle }: { authorHandle: string }) {
             onClick={() => setOpen(false)}
           />
           <div className="absolute right-0 top-9 z-50 w-48 overflow-hidden rounded-xl border border-line bg-background-secondary py-1 shadow-pop">
+            {onEdit && (
+              <button
+                type="button"
+                onClick={() => runAction(onEdit)}
+                className="flex w-full items-center gap-2 px-3 py-2 text-sm text-ink transition-colors hover:bg-surface-hover"
+              >
+                <Pencil className="h-4 w-4" /> Edit post
+              </button>
+            )}
+            {onDelete && (
+              <button
+                type="button"
+                onClick={() => runAction(onDelete)}
+                className="flex w-full items-center gap-2 px-3 py-2 text-sm text-live transition-colors hover:bg-surface-hover"
+              >
+                <Trash2 className="h-4 w-4" /> Delete post
+              </button>
+            )}
+            {(onEdit || onDelete) && <div className="my-1 h-px bg-line" />}
             <button
               type="button"
               onClick={copyLink}
@@ -53,13 +88,15 @@ export function PostMenu({ authorHandle }: { authorHandle: string }) {
             >
               <Link2 className="h-4 w-4" /> Copy link
             </button>
-            <button
-              type="button"
-              onClick={() => setOpen(false)}
-              className="flex w-full items-center gap-2 px-3 py-2 text-sm text-ink-muted transition-colors hover:bg-surface-hover"
-            >
-              <VolumeX className="h-4 w-4" /> Mute @{authorHandle}
-            </button>
+            {!onEdit && !onDelete && (
+              <button
+                type="button"
+                onClick={() => setOpen(false)}
+                className="flex w-full items-center gap-2 px-3 py-2 text-sm text-ink-muted transition-colors hover:bg-surface-hover"
+              >
+                <VolumeX className="h-4 w-4" /> Mute @{authorHandle}
+              </button>
+            )}
           </div>
         </>
       )}
