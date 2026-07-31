@@ -78,7 +78,16 @@ create policy "Update own posts"
   using (author_id = auth.uid())
   with check (author_id = auth.uid());
 
--- 4. updated_at trigger (reuses handle_updated_at from 0001) ---------------
+-- 4. updated_at trigger --------------------------------------------------
+-- `handle_updated_at()` is also defined in 0001; (re)defined here so 0002 is
+-- self-contained and safe to run even if 0001 was applied without it.
+create or replace function public.handle_updated_at()
+returns trigger language plpgsql as $$
+begin
+  new.updated_at = now();
+  return new;
+end $$;
+
 drop trigger if exists posts_updated_at on public.posts;
 create trigger posts_updated_at
   before update on public.posts
