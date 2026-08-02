@@ -7,7 +7,7 @@ import { CURRENT_USER_ID, getUser } from "@/data/mock";
 import { Avatar } from "@/components/ui/Avatar";
 import { useSession } from "@/components/providers/SessionProvider";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
-import { createImagePost, createTextPost } from "@/lib/posts/actions";
+import { createImagePost, createMedalPost, createTextPost } from "@/lib/posts/actions";
 import {
   ACCEPTED_IMAGE_TYPES,
   MAX_IMAGES,
@@ -20,7 +20,7 @@ const MAX = 280;
 
 const OPTIONS = [
   { key: "image", label: "Image", icon: ImageIcon },
-  { key: "clip", label: "Clip", icon: Clapperboard },
+  { key: "medal", label: "Medal", icon: Clapperboard },
   { key: "poll", label: "Poll", icon: ListChecks },
   { key: "match", label: "Match", icon: Swords },
 ] as const;
@@ -58,6 +58,8 @@ export function PostComposer({ onDemoPost }: { onDemoPost: (text: string) => voi
 
   const [text, setText] = useState("");
   const [images, setImages] = useState<ImageDraft[]>([]);
+  const [medalUrl, setMedalUrl] = useState("");
+  const [showMedal, setShowMedal] = useState(false);
   const [note, setNote] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -71,8 +73,9 @@ export function PostComposer({ onDemoPost }: { onDemoPost: (text: string) => voi
 
   const remaining = MAX - text.length;
   const tooLong = remaining < 0;
+  const hasMedal = showMedal && medalUrl.trim().length > 0;
   const canPost =
-    (text.trim().length > 0 || images.length > 0) && !tooLong && !submitting;
+    (text.trim().length > 0 || images.length > 0 || hasMedal) && !tooLong && !submitting;
 
   const openImagePicker = () => {
     if (images.length >= MAX_IMAGES) {
@@ -88,6 +91,15 @@ export function PostComposer({ onDemoPost }: { onDemoPost: (text: string) => voi
         openImagePicker();
       } else {
         setNote("Image uploads need a signed-in account — available in real (Supabase) mode.");
+      }
+      return;
+    }
+    if (key === "medal") {
+      if (useRealAuth) {
+        setShowMedal((v) => !v);
+        setNote(null);
+      } else {
+        setNote("Medal links need a signed-in account — available in real (Supabase) mode.");
       }
       return;
     }
@@ -156,6 +168,23 @@ export function PostComposer({ onDemoPost }: { onDemoPost: (text: string) => voi
     }
 
     setSubmitting(true);
+
+    // Medal clip post
+    if (hasMedal) {
+      const res = await createMedalPost({ url: medalUrl.trim(), body: text.trim() });
+      if (!res.ok) {
+        setError(res.error ?? "Couldn't post the Medal link.");
+        setSubmitting(false);
+        return;
+      }
+      setMedalUrl("");
+      setShowMedal(false);
+      setText("");
+      setNote(null);
+      setSubmitting(false);
+      router.refresh();
+      return;
+    }
 
     // Image post
     if (images.length > 0) {
@@ -248,6 +277,23 @@ export function PostComposer({ onDemoPost }: { onDemoPost: (text: string) => voi
                   />
                 </div>
               ))}
+            </div>
+          )}
+
+          {showMedal && (
+            <div className="mt-2">
+              <input
+                value={medalUrl}
+                onChange={(e) => setMedalUrl(e.target.value)}
+                placeholder="Paste a medal.tv clip link"
+                inputMode="url"
+                aria-label="Medal clip link"
+                className="w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink outline-none placeholder:text-ink-muted focus:border-accent"
+              />
+              <p className="mt-1 text-[11px] text-ink-muted">
+                Only public medal.tv links. The clip stays on Medal — we link out with
+                attribution.
+              </p>
             </div>
           )}
 

@@ -9,7 +9,8 @@ const SEED_THRESHOLD = 8;
 const POST_SELECT =
   "id, author_id, type, body, created_at, " +
   "profiles ( id, username, display_name, avatar_url, role ), " +
-  "post_media ( storage_path, alt, width, height, position )";
+  "post_media ( storage_path, alt, width, height, position ), " +
+  "post_external_sources ( external_url, creator_username, creator_profile_url, provider )";
 
 interface ProfileRow {
   id: string;
@@ -25,6 +26,13 @@ interface MediaRow {
   width: number | null;
   height: number | null;
   position: number | null;
+}
+
+interface ExtSourceRow {
+  external_url: string | null;
+  creator_username: string | null;
+  creator_profile_url: string | null;
+  provider: string | null;
 }
 
 function publicImageUrl(storagePath: string): string {
@@ -57,6 +65,22 @@ function mapPostRow(row: Record<string, unknown>): SocialPost {
     stats: { replies: 0, reposts: 0, likes: 0, views: 0, bookmarks: 0 },
     author,
   };
+
+  if (row.type === "MEDAL_CLIP") {
+    const src = (Array.isArray(row.post_external_sources)
+      ? row.post_external_sources[0]
+      : row.post_external_sources) as ExtSourceRow | null;
+    if (src?.external_url) {
+      return {
+        ...base,
+        type: "medalClip",
+        medalUrl: src.external_url,
+        creatorUsername: src.creator_username ?? undefined,
+        creatorProfileUrl: src.creator_profile_url ?? undefined,
+        medalSource: "MEDAL_MANUAL",
+      };
+    }
+  }
 
   const mediaRows = (Array.isArray(row.post_media) ? (row.post_media as MediaRow[]) : [])
     .filter((m) => m.storage_path)
@@ -95,7 +119,7 @@ export async function getFeedPosts(): Promise<SocialPost[]> {
     const result = await supabase
       .from("posts")
       .select(POST_SELECT)
-      .in("type", ["TEXT", "IMAGE"])
+      .in("type", ["TEXT", "IMAGE", "MEDAL_CLIP"])
       .order("created_at", { ascending: false })
       .limit(50);
 

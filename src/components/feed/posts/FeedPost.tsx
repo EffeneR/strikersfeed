@@ -16,6 +16,7 @@ import { MatchPost } from "./MatchPost";
 import { MatchReviewPost } from "./MatchReviewPost";
 import { TournamentPost } from "./TournamentPost";
 import { RecruitmentPost } from "./RecruitmentPost";
+import { MedalClipPost } from "./MedalClipPost";
 
 function PostBody({ post }: { post: SocialPost }) {
   switch (post.type) {
@@ -31,6 +32,8 @@ function PostBody({ post }: { post: SocialPost }) {
       return <TournamentPost post={post} />;
     case "recruitment":
       return <RecruitmentPost post={post} />;
+    case "medalClip":
+      return <MedalClipPost post={post} />;
     default:
       return null;
   }

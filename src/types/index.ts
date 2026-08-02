@@ -162,7 +162,8 @@ export type PostType =
   | "match"
   | "matchReview"
   | "tournament"
-  | "recruitment";
+  | "recruitment"
+  | "medalClip";
 
 export interface PostStats {
   replies: number;
@@ -243,6 +244,16 @@ export interface RecruitmentPost extends BasePost {
   minRank?: string;
 }
 
+export interface MedalClipPost extends BasePost {
+  type: "medalClip";
+  /** Original public Medal clip URL (validated + normalised). */
+  medalUrl: string;
+  creatorUsername?: string;
+  creatorProfileUrl?: string;
+  /** How this Medal post entered StrikersFeed (attribution). */
+  medalSource: "MEDAL_MANUAL" | "MEDAL_PUBLIC_DISCOVERY" | "MEDAL_CONNECTED_PROFILE";
+}
+
 /** Discriminated union over `type` — drives the FeedPost renderer. */
 export type SocialPost =
   | TextPost
@@ -250,7 +261,8 @@ export type SocialPost =
   | MatchPost
   | MatchReviewPost
   | TournamentPost
-  | RecruitmentPost;
+  | RecruitmentPost
+  | MedalClipPost;
 
 export interface Comment {
   id: ID;

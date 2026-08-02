@@ -3,6 +3,7 @@
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/server";
 import { PostSource, PostType } from "@/types/posts";
+import { validateMedalUrl } from "@/lib/medal/validateUrl";
 
 export interface PostActionResult {
   ok: boolean;
@@ -129,6 +130,64 @@ export async function createImagePost(input: {
   if (mediaErr) return { ok: false, error: mediaErr.message };
 
   return { ok: true, id: input.id };
+}
+
+export async function createMedalPost(input: {
+  url: string;
+  body: string;
+}): Promise<PostActionResult> {
+  if (!isSupabaseConfigured()) return { ok: false, demo: true };
+  const supabase = await createClient();
+  if (!supabase) return { ok: false, demo: true };
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Please sign in to post." };
+
+  const validated = validateMedalUrl(input.url);
+  if (!validated.ok) return { ok: false, error: validated.error };
+
+  const body = input.body.trim();
+  if (body.length > MAX_BODY) {
+    return { ok: false, error: `Posts are limited to ${MAX_BODY} characters.` };
+  }
+
+  const since = new Date(Date.now() - RATE_WINDOW_MS).toISOString();
+  const { count } = await supabase
+    .from("posts")
+    .select("id", { count: "exact", head: true })
+    .eq("author_id", user.id)
+    .gte("created_at", since);
+  if ((count ?? 0) >= RATE_MAX) {
+    return { ok: false, error: "You're posting too fast — give it a moment." };
+  }
+
+  const { data, error } = await supabase
+    .from("posts")
+    .insert({
+      author_id: user.id,
+      type: PostType.MEDAL_CLIP,
+      source: PostSource.MEDAL_MANUAL,
+      body,
+    })
+    .select("id")
+    .single();
+  if (error || !data) {
+    return { ok: false, error: error?.message ?? "Couldn't create the post." };
+  }
+
+  const creator = validated.info.creatorUsername;
+  const { error: srcErr } = await supabase.from("post_external_sources").insert({
+    post_id: data.id as string,
+    provider: "medal",
+    external_url: validated.info.url,
+    creator_username: creator ?? null,
+    creator_profile_url: creator ? `https://medal.tv/u/${creator}` : null,
+  });
+  if (srcErr) return { ok: false, error: srcErr.message };
+
+  return { ok: true, id: data.id as string };
 }
 
 export async function updateTextPost(input: {

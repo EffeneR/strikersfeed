@@ -57,8 +57,9 @@ export function toSocialPostType(type: PostType): UIPostType {
       return "text";
     case "IMAGE":
     case "VIDEO":
-    case "MEDAL_CLIP":
       return "media";
+    case "MEDAL_CLIP":
+      return "medalClip";
     case "MATCH":
       return "match";
     case "TOURNAMENT":
