@@ -206,6 +206,10 @@ interface BasePost {
    * the mock lookup; mock posts leave this undefined and resolve by `authorId`.
    */
   author?: AuthorView;
+  /** True for real DB posts — reactions persist; mock/demo posts stay local. */
+  persistent?: boolean;
+  /** The current viewer's reaction state (real posts, when signed in). */
+  viewerReactions?: { liked: boolean; reposted: boolean; bookmarked: boolean };
 }
 
 export interface TextPost extends BasePost {

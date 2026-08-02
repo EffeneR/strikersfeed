@@ -145,7 +145,7 @@ export function FeedPost({ post }: { post: SocialPost }) {
                 {error}
               </p>
             )}
-            <PostActions stats={post.stats} />
+            <PostActions post={post} />
           </>
         )}
       </div>

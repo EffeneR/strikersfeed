@@ -1,4 +1,5 @@
 import type { AuthorView, MediaAttachment, SocialPost } from "@/types";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { isSupabaseConfigured, SUPABASE_URL } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/server";
 import { getForYouPosts } from "@/data/mock";
@@ -7,7 +8,7 @@ import { getForYouPosts } from "@/data/mock";
 const SEED_THRESHOLD = 8;
 
 const POST_SELECT =
-  "id, author_id, type, body, created_at, " +
+  "id, author_id, type, body, created_at, like_count, repost_count, bookmark_count, " +
   "profiles ( id, username, display_name, avatar_url, role ), " +
   "post_media ( storage_path, alt, width, height, position ), " +
   "post_external_sources ( external_url, creator_username, creator_profile_url, provider )";
@@ -39,6 +40,10 @@ function publicImageUrl(storagePath: string): string {
   return `${SUPABASE_URL}/storage/v1/object/public/post-images/${storagePath}`;
 }
 
+function num(value: unknown): number {
+  return typeof value === "number" ? value : 0;
+}
+
 function profileToAuthor(profile: ProfileRow | null, authorId: string): AuthorView {
   const handle = profile?.username ?? "member";
   return {
@@ -56,14 +61,19 @@ function mapPostRow(row: Record<string, unknown>): SocialPost {
   const profile = (Array.isArray(row.profiles) ? row.profiles[0] : row.profiles) as
     | ProfileRow
     | null;
-  const author = profileToAuthor(profile, row.author_id as string);
   const base = {
     id: row.id as string,
     authorId: row.author_id as string,
     createdAt: row.created_at as string,
     content: (row.body as string) ?? "",
-    stats: { replies: 0, reposts: 0, likes: 0, views: 0, bookmarks: 0 },
-    author,
+    stats: {
+      replies: 0,
+      reposts: num(row.repost_count),
+      likes: num(row.like_count),
+      bookmarks: num(row.bookmark_count),
+    },
+    author: profileToAuthor(profile, row.author_id as string),
+    persistent: true,
   };
 
   if (row.type === "MEDAL_CLIP") {
@@ -102,16 +112,49 @@ function mapPostRow(row: Record<string, unknown>): SocialPost {
   return { ...base, type: "text" };
 }
 
+/** Fetch the signed-in user's reactions for the given posts and attach them. */
+async function attachViewerReactions(
+  supabase: SupabaseClient,
+  posts: SocialPost[],
+): Promise<SocialPost[]> {
+  if (posts.length === 0) return posts;
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return posts;
+
+  const ids = posts.map((p) => p.id);
+  const { data } = await supabase
+    .from("post_reactions")
+    .select("post_id, kind")
+    .eq("user_id", user.id)
+    .in("post_id", ids);
+  if (!data) return posts;
+
+  const map = new Map<string, { liked: boolean; reposted: boolean; bookmarked: boolean }>();
+  for (const r of data as { post_id: string; kind: string }[]) {
+    const cur = map.get(r.post_id) ?? { liked: false, reposted: false, bookmarked: false };
+    if (r.kind === "like") cur.liked = true;
+    else if (r.kind === "repost") cur.reposted = true;
+    else if (r.kind === "bookmark") cur.bookmarked = true;
+    map.set(r.post_id, cur);
+  }
+  for (const p of posts) {
+    const v = map.get(p.id);
+    if (v) p.viewerReactions = v;
+  }
+  return posts;
+}
+
 /**
- * Feed posts for the "For You" timeline. Reads real DB posts when Supabase is
- * configured (respecting RLS — anonymous readers see public+visible posts) and
- * pads with mock content while real content is sparse. Falls back entirely to
- * mock data in demo mode / on any error.
+ * Feed posts for the "For You" timeline. Reads real DB posts + reaction counts
+ * when Supabase is configured, attaches the viewer's own reaction state, and
+ * pads with mock content while real content is sparse. Falls back to mock in
+ * demo mode / on any error.
  */
 export async function getFeedPosts(): Promise<SocialPost[]> {
   if (!isSupabaseConfigured()) return getForYouPosts();
 
-  let data: Record<string, unknown>[] | null = null;
   try {
     const supabase = await createClient();
     if (!supabase) return getForYouPosts();
@@ -124,14 +167,15 @@ export async function getFeedPosts(): Promise<SocialPost[]> {
       .limit(50);
 
     if (result.error || !result.data) return getForYouPosts();
-    data = result.data as unknown as Record<string, unknown>[];
+
+    const rows = result.data as unknown as Record<string, unknown>[];
+    const realPosts = await attachViewerReactions(supabase, rows.map(mapPostRow));
+
+    if (realPosts.length >= SEED_THRESHOLD) return realPosts;
+    return [...realPosts, ...getForYouPosts()];
   } catch {
     return getForYouPosts();
   }
-
-  const realPosts = data.map(mapPostRow);
-  if (realPosts.length >= SEED_THRESHOLD) return realPosts;
-  return [...realPosts, ...getForYouPosts()];
 }
 
 /** A single user's own posts (newest first), for their profile page. */
@@ -150,7 +194,8 @@ export async function getPostsByAuthor(userId: string): Promise<SocialPost[]> {
       .limit(50);
 
     if (result.error || !result.data) return [];
-    return (result.data as unknown as Record<string, unknown>[]).map(mapPostRow);
+    const rows = result.data as unknown as Record<string, unknown>[];
+    return attachViewerReactions(supabase, rows.map(mapPostRow));
   } catch {
     return [];
   }
