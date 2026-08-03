@@ -17,6 +17,7 @@ import { MatchReviewPost } from "./MatchReviewPost";
 import { TournamentPost } from "./TournamentPost";
 import { RecruitmentPost } from "./RecruitmentPost";
 import { MedalClipPost } from "./MedalClipPost";
+import { CommentThread } from "./CommentThread";
 
 function PostBody({ post }: { post: SocialPost }) {
   switch (post.type) {
@@ -49,6 +50,7 @@ export function FeedPost({ post }: { post: SocialPost }) {
   const [draft, setDraft] = useState(post.content);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showComments, setShowComments] = useState(false);
 
   const author = post.author ?? resolveAuthor(post.authorId);
   const isOwn = mode === "supabase" && !!userId && post.authorId === userId;
@@ -145,7 +147,10 @@ export function FeedPost({ post }: { post: SocialPost }) {
                 {error}
               </p>
             )}
-            <PostActions post={post} />
+            <PostActions post={post} onReply={() => setShowComments((v) => !v)} />
+            {showComments && (
+              <CommentThread postId={post.id} persistent={!!post.persistent} />
+            )}
           </>
         )}
       </div>

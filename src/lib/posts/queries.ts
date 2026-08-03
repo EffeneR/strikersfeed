@@ -8,7 +8,7 @@ import { getForYouPosts } from "@/data/mock";
 const SEED_THRESHOLD = 8;
 
 const POST_SELECT =
-  "id, author_id, type, body, created_at, like_count, repost_count, bookmark_count, " +
+  "id, author_id, type, body, created_at, like_count, repost_count, bookmark_count, comment_count, " +
   "profiles ( id, username, display_name, avatar_url, role ), " +
   "post_media ( storage_path, alt, width, height, position ), " +
   "post_external_sources ( external_url, creator_username, creator_profile_url, provider )";
@@ -67,7 +67,7 @@ function mapPostRow(row: Record<string, unknown>): SocialPost {
     createdAt: row.created_at as string,
     content: (row.body as string) ?? "",
     stats: {
-      replies: 0,
+      replies: num(row.comment_count),
       reposts: num(row.repost_count),
       likes: num(row.like_count),
       bookmarks: num(row.bookmark_count),

@@ -20,7 +20,13 @@ import { cn } from "@/lib/cn";
  * optimistically toggled and persisted via {@link toggleReaction} (reverting on
  * failure). Mock/demo posts keep purely local state.
  */
-export function PostActions({ post }: { post: SocialPost }) {
+export function PostActions({
+  post,
+  onReply,
+}: {
+  post: SocialPost;
+  onReply?: () => void;
+}) {
   const stats = post.stats;
   const persistent = !!post.persistent && isSupabaseConfigured();
   const base = post.viewerReactions ?? { liked: false, reposted: false, bookmarked: false };
@@ -76,7 +82,7 @@ export function PostActions({ post }: { post: SocialPost }) {
 
   return (
     <div className="mt-3 flex items-center justify-between text-ink-muted">
-      <ActionButton label="Reply" count={stats.replies}>
+      <ActionButton label="Reply" count={stats.replies} onClick={onReply}>
         <MessageCircle className="h-[18px] w-[18px]" />
       </ActionButton>
 
