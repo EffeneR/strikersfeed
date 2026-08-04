@@ -2,6 +2,8 @@ import type { AccountRole } from "@/config/accountRoles";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/server";
 
+export type VerificationStatus = "none" | "steam_verified" | "pro_verified";
+
 export interface CurrentUser {
   id: string;
   email: string | null;
@@ -10,6 +12,9 @@ export interface CurrentUser {
   role: AccountRole | null;
   avatarUrl: string | null;
   bio: string | null;
+  steamId: string | null;
+  steamPersona: string | null;
+  verificationStatus: VerificationStatus;
 }
 
 /**
@@ -32,7 +37,9 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
 
     const { data: profile } = await supabase
       .from("profiles")
-      .select("username, display_name, role, avatar_url, bio")
+      .select(
+        "username, display_name, role, avatar_url, bio, steam_id, steam_persona, verification_status",
+      )
       .eq("id", user.id)
       .maybeSingle();
 
@@ -50,6 +57,9 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
       role: (profile?.role ?? meta?.role ?? null) as AccountRole | null,
       avatarUrl: profile?.avatar_url ?? null,
       bio: profile?.bio ?? null,
+      steamId: profile?.steam_id ?? null,
+      steamPersona: profile?.steam_persona ?? null,
+      verificationStatus: (profile?.verification_status ?? "none") as VerificationStatus,
     };
   } catch {
     // Supabase unreachable / transient error — treat as signed out.

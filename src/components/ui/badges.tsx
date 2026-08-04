@@ -1,4 +1,4 @@
-import { BadgeCheck } from "lucide-react";
+import { BadgeCheck, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/cn";
 
 /** Blue-style verification tick, tinted to the brand accent. */
@@ -8,6 +8,15 @@ export function VerifiedBadge({ className }: { className?: string }) {
       aria-label="Verified account"
       className={cn("h-4 w-4 text-accent", className)}
     />
+  );
+}
+
+/** Steam-ownership-verified badge (anti-impersonation). */
+export function SteamBadge({ className }: { className?: string }) {
+  return (
+    <span title="Steam verified" className="inline-flex" aria-label="Steam verified">
+      <ShieldCheck className={cn("h-4 w-4 text-accent", className)} />
+    </span>
   );
 }
 

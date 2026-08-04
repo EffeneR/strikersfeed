@@ -12,3 +12,13 @@ export const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? ""
 export function isSupabaseConfigured(): boolean {
   return SUPABASE_URL.length > 0 && SUPABASE_ANON_KEY.length > 0;
 }
+
+/** Public canonical site origin (used for OAuth/OpenID return URLs). */
+export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "";
+
+/**
+ * Public flag: whether "Sign in with Steam" is offered in the UI. The server
+ * still independently checks its own STEAM_WEB_API_KEY before doing anything —
+ * this only controls whether the button is shown.
+ */
+export const STEAM_ENABLED = process.env.NEXT_PUBLIC_STEAM_ENABLED === "true";

@@ -8,9 +8,10 @@ import { useSession } from "@/components/providers/SessionProvider";
 import { Logo } from "@/components/layout/Logo";
 import { siteConfig } from "@/config/site";
 import { accountRoles, type AccountRole } from "@/config/accountRoles";
-import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { isSupabaseConfigured, STEAM_ENABLED } from "@/lib/supabase/config";
 import { signInAction, signUpAction } from "@/lib/auth/actions";
 import { cn } from "@/lib/cn";
+import { Gamepad2 } from "lucide-react";
 
 interface Field {
   id: string;
@@ -151,6 +152,23 @@ export function AuthCard({ mode }: { mode: "login" | "register" }) {
             ? "Create your account to join the community."
             : "Sign in to pick up where you left off."}
         </p>
+
+        {STEAM_ENABLED && (
+          <>
+            <a
+              href="/api/auth/steam"
+              className="mt-4 flex h-11 w-full items-center justify-center gap-2 rounded-full border border-line bg-surface text-sm font-semibold text-ink transition-colors hover:bg-surface-hover"
+            >
+              <Gamepad2 className="h-5 w-5 text-accent" />
+              Continue with Steam
+            </a>
+            <div className="my-4 flex items-center gap-3 text-xs text-ink-muted">
+              <span className="h-px flex-1 bg-line" />
+              or
+              <span className="h-px flex-1 bg-line" />
+            </div>
+          </>
+        )}
 
         {!useRealAuth && (
           <div className="mt-4 flex items-start gap-2 rounded-lg border border-accent/30 bg-accent/10 px-3 py-2.5 text-xs text-ink">

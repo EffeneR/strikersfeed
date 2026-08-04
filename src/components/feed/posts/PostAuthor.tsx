@@ -5,7 +5,7 @@ import type { AuthorView } from "@/types";
 import { relativeTime } from "@/data/mock";
 import { Avatar } from "@/components/ui/Avatar";
 import { TeamCrest } from "@/components/ui/TeamCrest";
-import { VerifiedBadge, ProBadge } from "@/components/ui/badges";
+import { VerifiedBadge, ProBadge, SteamBadge } from "@/components/ui/badges";
 
 export function PostAuthor({
   author,
@@ -42,6 +42,7 @@ export function PostAuthor({
             {author.displayName}
           </Link>
           {author.isVerified && <VerifiedBadge />}
+          {author.steamVerified && <SteamBadge />}
           {author.isPro && <ProBadge />}
           <span className="text-ink-muted">@{author.handle}</span>
           <span className="text-ink-muted" aria-hidden="true">

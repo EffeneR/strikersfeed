@@ -9,7 +9,7 @@ const SEED_THRESHOLD = 8;
 
 const POST_SELECT =
   "id, author_id, type, body, created_at, like_count, repost_count, bookmark_count, comment_count, " +
-  "profiles ( id, username, display_name, avatar_url, role ), " +
+  "profiles ( id, username, display_name, avatar_url, role, verification_status ), " +
   "post_media ( storage_path, alt, width, height, position ), " +
   "post_external_sources ( external_url, creator_username, creator_profile_url, provider )";
 
@@ -19,6 +19,7 @@ interface ProfileRow {
   display_name: string | null;
   avatar_url: string | null;
   role: string | null;
+  verification_status?: string | null;
 }
 
 interface MediaRow {
@@ -52,6 +53,7 @@ function profileToAuthor(profile: ProfileRow | null, authorId: string): AuthorVi
     handle,
     avatarUrl: profile?.avatar_url ?? "",
     isVerified: false,
+    steamVerified: (profile?.verification_status ?? "none") !== "none",
     type: profile?.role === "team" ? "team" : "player",
     profileHref: `/players/${handle}`,
   };
