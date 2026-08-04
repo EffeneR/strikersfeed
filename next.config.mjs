@@ -9,9 +9,10 @@ const nextConfig = {
   // Pin the workspace root to this project (a stray lockfile exists higher up).
   outputFileTracingRoot: __dirname,
   images: {
-    // Local assets only in Phase 1. Remote providers (e.g. Supabase storage)
-    // can be added here later via remotePatterns.
-    remotePatterns: [],
+    // Allow Supabase Storage public URLs (user-uploaded post images).
+    remotePatterns: [
+      { protocol: "https", hostname: "*.supabase.co", pathname: "/storage/v1/object/public/**" },
+    ],
   },
 };
 

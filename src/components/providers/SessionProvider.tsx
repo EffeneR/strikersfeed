@@ -41,6 +41,8 @@ interface SessionValue {
   mode: "supabase" | "demo";
   /** The mock account id used for display until data is migrated (Phase 2b). */
   currentUserId: string;
+  /** The real signed-in user's id (Supabase mode), else null. */
+  userId: string | null;
   /** Account role — from the real profile, or the demo choice. */
   role: AccountRole | null;
   /** Display name from the real profile, when available. */
@@ -62,6 +64,7 @@ export interface SessionProviderProps {
   initialRole?: AccountRole | null;
   initialDisplayName?: string | null;
   initialUsername?: string | null;
+  initialUserId?: string | null;
 }
 
 export function SessionProvider({
@@ -71,9 +74,11 @@ export function SessionProvider({
   initialRole = null,
   initialDisplayName = null,
   initialUsername = null,
+  initialUserId = null,
 }: SessionProviderProps) {
   const router = useRouter();
   const [isAuthenticated, setAuthenticated] = useState(configured ? initialAuthed : false);
+  const [userId, setUserId] = useState<string | null>(configured ? initialUserId : null);
   const [role, setRole] = useState<AccountRole | null>(configured ? initialRole : null);
   const [displayName, setDisplayName] = useState<string | null>(
     configured ? initialDisplayName : null,
@@ -104,7 +109,8 @@ export function SessionProvider({
     setRole(initialRole);
     setDisplayName(initialDisplayName);
     setUsername(initialUsername);
-  }, [configured, initialAuthed, initialRole, initialDisplayName, initialUsername]);
+    setUserId(initialUserId);
+  }, [configured, initialAuthed, initialRole, initialDisplayName, initialUsername, initialUserId]);
 
   // Supabase mode: keep in sync with the real auth session.
   useEffect(() => {
@@ -159,13 +165,14 @@ export function SessionProvider({
       ready,
       mode: configured ? "supabase" : "demo",
       currentUserId: CURRENT_USER_ID,
+      userId,
       role,
       displayName,
       username,
       enterDemo,
       signOut,
     }),
-    [isAuthenticated, ready, configured, role, displayName, username, enterDemo, signOut],
+    [isAuthenticated, ready, configured, userId, role, displayName, username, enterDemo, signOut],
   );
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;

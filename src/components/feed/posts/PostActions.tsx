@@ -9,28 +9,65 @@ import {
   Repeat2,
   Share,
 } from "lucide-react";
-import type { PostStats } from "@/types";
+import type { SocialPost } from "@/types";
 import { formatCount } from "@/lib/format";
+import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { toggleReaction, type ReactionKind } from "@/lib/posts/reactions";
 import { cn } from "@/lib/cn";
 
 /**
- * Interactive post action bar. Phase 1 keeps like / repost / bookmark state in
- * local component state only — nothing is written to a backend. Structured so
- * each handler can later call a Supabase mutation.
+ * Post action bar. For real (persistent) DB posts, likes/reposts/bookmarks are
+ * optimistically toggled and persisted via {@link toggleReaction} (reverting on
+ * failure). Mock/demo posts keep purely local state.
  */
-export function PostActions({ stats }: { stats: PostStats }) {
-  const [liked, setLiked] = useState(false);
-  const [reposted, setReposted] = useState(false);
-  const [bookmarked, setBookmarked] = useState(false);
+export function PostActions({
+  post,
+  onReply,
+}: {
+  post: SocialPost;
+  onReply?: () => void;
+}) {
+  const stats = post.stats;
+  const persistent = !!post.persistent && isSupabaseConfigured();
+  const base = post.viewerReactions ?? { liked: false, reposted: false, bookmarked: false };
+
+  const [liked, setLiked] = useState(base.liked);
+  const [reposted, setReposted] = useState(base.reposted);
+  const [bookmarked, setBookmarked] = useState(base.bookmarked);
   const [copied, setCopied] = useState(false);
 
-  const likeCount = stats.likes + (liked ? 1 : 0);
-  const repostCount = stats.reposts + (reposted ? 1 : 0);
+  const delta = (current: boolean, initial: boolean) =>
+    current === initial ? 0 : current ? 1 : -1;
+
+  const likeCount = stats.likes + delta(liked, base.liked);
+  const repostCount = stats.reposts + delta(reposted, base.reposted);
+
+  const persist = (kind: ReactionKind, next: boolean, revert: () => void) => {
+    if (!persistent) return;
+    void toggleReaction({ postId: post.id, kind }).then((res) => {
+      if (!res.ok) revert();
+    });
+  };
+
+  const onLike = () => {
+    const next = !liked;
+    setLiked(next);
+    persist("like", next, () => setLiked(!next));
+  };
+  const onRepost = () => {
+    const next = !reposted;
+    setReposted(next);
+    persist("repost", next, () => setReposted(!next));
+  };
+  const onBookmark = () => {
+    const next = !bookmarked;
+    setBookmarked(next);
+    persist("bookmark", next, () => setBookmarked(!next));
+  };
 
   const share = async () => {
     try {
-      const url =
-        typeof window !== "undefined" ? `${window.location.origin}/feed` : "/feed";
+      const url = typeof window !== "undefined" ? `${window.location.origin}/feed` : "/feed";
       if (navigator.share) {
         await navigator.share({ title: "StrikersFeed", url });
       } else {
@@ -39,13 +76,13 @@ export function PostActions({ stats }: { stats: PostStats }) {
         setTimeout(() => setCopied(false), 1500);
       }
     } catch {
-      /* user dismissed share sheet or clipboard blocked — ignore */
+      /* dismissed or blocked — ignore */
     }
   };
 
   return (
     <div className="mt-3 flex items-center justify-between text-ink-muted">
-      <ActionButton label="Reply" count={stats.replies}>
+      <ActionButton label="Reply" count={stats.replies} onClick={onReply}>
         <MessageCircle className="h-[18px] w-[18px]" />
       </ActionButton>
 
@@ -55,7 +92,7 @@ export function PostActions({ stats }: { stats: PostStats }) {
         active={reposted}
         activeClass="text-emerald-400"
         hoverClass="group-hover:text-emerald-400"
-        onClick={() => setReposted((v) => !v)}
+        onClick={onRepost}
       >
         <Repeat2 className="h-[18px] w-[18px]" />
       </ActionButton>
@@ -66,7 +103,7 @@ export function PostActions({ stats }: { stats: PostStats }) {
         active={liked}
         activeClass="text-live"
         hoverClass="group-hover:text-live"
-        onClick={() => setLiked((v) => !v)}
+        onClick={onLike}
       >
         <Heart className={cn("h-[18px] w-[18px]", liked && "fill-current")} />
       </ActionButton>
@@ -83,7 +120,7 @@ export function PostActions({ stats }: { stats: PostStats }) {
         active={bookmarked}
         activeClass="text-accent"
         hoverClass="group-hover:text-accent"
-        onClick={() => setBookmarked((v) => !v)}
+        onClick={onBookmark}
       >
         <Bookmark className={cn("h-[18px] w-[18px]", bookmarked && "fill-current")} />
       </ActionButton>

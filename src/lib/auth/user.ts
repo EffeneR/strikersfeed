@@ -9,6 +9,7 @@ export interface CurrentUser {
   username: string | null;
   role: AccountRole | null;
   avatarUrl: string | null;
+  bio: string | null;
 }
 
 /**
@@ -31,7 +32,7 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
 
     const { data: profile } = await supabase
       .from("profiles")
-      .select("username, display_name, role, avatar_url")
+      .select("username, display_name, role, avatar_url, bio")
       .eq("id", user.id)
       .maybeSingle();
 
@@ -48,6 +49,7 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
       username: handle,
       role: (profile?.role ?? meta?.role ?? null) as AccountRole | null,
       avatarUrl: profile?.avatar_url ?? null,
+      bio: profile?.bio ?? null,
     };
   } catch {
     // Supabase unreachable / transient error — treat as signed out.

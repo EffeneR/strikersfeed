@@ -162,7 +162,8 @@ export type PostType =
   | "match"
   | "matchReview"
   | "tournament"
-  | "recruitment";
+  | "recruitment"
+  | "medalClip";
 
 export interface PostStats {
   replies: number;
@@ -175,12 +176,14 @@ export interface PostStats {
 export interface MediaAttachment {
   id: ID;
   kind: "image" | "clip";
-  /** Poster/thumbnail image in Phase 1 (no real video pipeline yet). */
+  /** Public URL for real uploads; empty for generative placeholders. */
   url: string;
   alt: string;
   durationSeconds?: number;
   /** width / height, used to reserve layout space. */
   aspectRatio?: number;
+  width?: number;
+  height?: number;
 }
 
 export interface PollOption {
@@ -203,6 +206,10 @@ interface BasePost {
    * the mock lookup; mock posts leave this undefined and resolve by `authorId`.
    */
   author?: AuthorView;
+  /** True for real DB posts — reactions persist; mock/demo posts stay local. */
+  persistent?: boolean;
+  /** The current viewer's reaction state (real posts, when signed in). */
+  viewerReactions?: { liked: boolean; reposted: boolean; bookmarked: boolean };
 }
 
 export interface TextPost extends BasePost {
@@ -241,6 +248,16 @@ export interface RecruitmentPost extends BasePost {
   minRank?: string;
 }
 
+export interface MedalClipPost extends BasePost {
+  type: "medalClip";
+  /** Original public Medal clip URL (validated + normalised). */
+  medalUrl: string;
+  creatorUsername?: string;
+  creatorProfileUrl?: string;
+  /** How this Medal post entered StrikersFeed (attribution). */
+  medalSource: "MEDAL_MANUAL" | "MEDAL_PUBLIC_DISCOVERY" | "MEDAL_CONNECTED_PROFILE";
+}
+
 /** Discriminated union over `type` — drives the FeedPost renderer. */
 export type SocialPost =
   | TextPost
@@ -248,7 +265,8 @@ export type SocialPost =
   | MatchPost
   | MatchReviewPost
   | TournamentPost
-  | RecruitmentPost;
+  | RecruitmentPost
+  | MedalClipPost;
 
 export interface Comment {
   id: ID;

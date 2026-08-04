@@ -5,6 +5,7 @@ import { formatCount, formatDate } from "@/lib/format";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { Card } from "@/components/ui/Card";
 import { Avatar } from "@/components/ui/Avatar";
+import { Button } from "@/components/ui/Button";
 import { Pill, ProBadge, VerifiedBadge } from "@/components/ui/badges";
 import { FeedPost } from "@/components/feed/posts/FeedPost";
 import { DemoRolePill } from "@/components/profile/DemoRolePill";
@@ -53,8 +54,16 @@ export default async function ProfilePage() {
                   <p className="text-sm text-ink-muted">@{realUser.username ?? "you"}</p>
                 </div>
               </div>
-              {roleLabel && <Pill tone="accent">{roleLabel}</Pill>}
+              <div className="flex items-center gap-2">
+                {roleLabel && <Pill tone="accent">{roleLabel}</Pill>}
+                <Button href="/settings/profile" variant="outline" size="sm">
+                  Edit profile
+                </Button>
+              </div>
             </div>
+            {realUser.bio && (
+              <p className="mt-4 max-w-2xl text-sm text-ink">{realUser.bio}</p>
+            )}
             <p className="mt-4 max-w-2xl text-sm text-ink-muted">
               Welcome to StrikersFeed. Your posts are below — competitive stats and a
               public profile page arrive in a later slice.

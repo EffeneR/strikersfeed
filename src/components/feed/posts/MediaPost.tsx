@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { Play } from "lucide-react";
 import type { MediaPost as MediaPostType, MediaAttachment } from "@/types";
 import { PitchArt } from "@/components/ui/PitchArt";
@@ -6,10 +7,22 @@ import { cn } from "@/lib/cn";
 
 function MediaTile({ media }: { media: MediaAttachment }) {
   const isClip = media.kind === "clip";
+  const isRealImage = media.kind === "image" && media.url.startsWith("http");
+
   return (
     <figure className="relative overflow-hidden rounded-xl border border-line bg-surface">
-      <div className="aspect-video w-full">
-        <PitchArt seed={media.id} />
+      <div className="relative aspect-video w-full">
+        {isRealImage ? (
+          <Image
+            src={media.url}
+            alt={media.alt}
+            fill
+            sizes="(max-width: 640px) 100vw, 600px"
+            className="object-cover"
+          />
+        ) : (
+          <PitchArt seed={media.id} />
+        )}
       </div>
 
       {isClip && (
@@ -34,7 +47,7 @@ function MediaTile({ media }: { media: MediaAttachment }) {
         </>
       )}
 
-      <figcaption className="sr-only">{media.alt}</figcaption>
+      {!isRealImage && <figcaption className="sr-only">{media.alt}</figcaption>}
     </figure>
   );
 }
