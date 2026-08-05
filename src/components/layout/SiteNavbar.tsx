@@ -139,7 +139,7 @@ function AccountMenu() {
             <div className="my-1 h-px bg-line" />
             {[
               { label: "Profile", href: "/profile" },
-              { label: "Connections", href: "/settings/connections" },
+              { label: "Settings", href: "/settings" },
               { label: "Notifications", href: "/notifications" },
               { label: "Messages", href: "/messages" },
             ].map((item) => (

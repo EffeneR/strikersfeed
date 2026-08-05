@@ -2,6 +2,7 @@ import type { AuthorView, MediaAttachment, SocialPost } from "@/types";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { isSupabaseConfigured, SUPABASE_URL } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/server";
+import { getBlockedUserIds } from "@/lib/moderation/queries";
 import { getForYouPosts } from "@/data/mock";
 
 /** Minimum real posts before we stop padding the feed with demo content. */
@@ -171,7 +172,18 @@ export async function getFeedPosts(): Promise<SocialPost[]> {
     if (result.error || !result.data) return getForYouPosts();
 
     const rows = result.data as unknown as Record<string, unknown>[];
-    const realPosts = await attachViewerReactions(supabase, rows.map(mapPostRow));
+    let mapped = rows.map(mapPostRow);
+
+    // Drop posts from accounts the viewer has blocked.
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (user) {
+      const blocked = await getBlockedUserIds(supabase, user.id);
+      if (blocked.size > 0) mapped = mapped.filter((p) => !blocked.has(p.authorId));
+    }
+
+    const realPosts = await attachViewerReactions(supabase, mapped);
 
     if (realPosts.length >= SEED_THRESHOLD) return realPosts;
     return [...realPosts, ...getForYouPosts()];

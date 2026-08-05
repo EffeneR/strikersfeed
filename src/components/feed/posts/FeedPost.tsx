@@ -6,6 +6,8 @@ import type { SocialPost } from "@/types";
 import { resolveAuthor } from "@/data/mock";
 import { useSession } from "@/components/providers/SessionProvider";
 import { deleteTextPost, updateTextPost } from "@/lib/posts/actions";
+import { blockUser } from "@/lib/moderation/actions";
+import { ReportDialog } from "@/components/moderation/ReportDialog";
 import { RichText } from "@/components/ui/RichText";
 import { PostAuthor } from "./PostAuthor";
 import { PostActions } from "./PostActions";
@@ -51,11 +53,26 @@ export function FeedPost({ post }: { post: SocialPost }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showComments, setShowComments] = useState(false);
+  const [reporting, setReporting] = useState(false);
 
   const author = post.author ?? resolveAuthor(post.authorId);
   const isOwn = mode === "supabase" && !!userId && post.authorId === userId;
   // Only native text posts are editable for now.
   const canEdit = isOwn && post.type === "text";
+  // Report/block only make sense for other people's real, persisted content.
+  const canModerate = mode === "supabase" && !!userId && !isOwn && !!post.persistent;
+
+  const block = async () => {
+    if (
+      typeof window !== "undefined" &&
+      !window.confirm(`Block @${author.handle}? You won't see their posts anymore.`)
+    ) {
+      return;
+    }
+    const res = await blockUser(post.authorId);
+    if (res.ok) router.refresh();
+    else setError(res.error ?? "Couldn't block this account.");
+  };
 
   const save = async () => {
     setBusy(true);
@@ -90,9 +107,20 @@ export function FeedPost({ post }: { post: SocialPost }) {
             authorHandle={author.handle}
             onEdit={canEdit ? () => setEditing(true) : undefined}
             onDelete={isOwn ? remove : undefined}
+            onReport={canModerate ? () => setReporting(true) : undefined}
+            onBlock={canModerate ? block : undefined}
           />
         }
       />
+      {canModerate && (
+        <ReportDialog
+          open={reporting}
+          onClose={() => setReporting(false)}
+          targetType="post"
+          targetId={post.id}
+          targetLabel={`@${author.handle}'s post`}
+        />
+      )}
       <div className="sm:pl-14">
         {editing ? (
           <div className="mt-1">

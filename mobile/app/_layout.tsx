@@ -22,6 +22,10 @@ export default function RootLayout() {
             name="compose"
             options={{ presentation: "modal", animation: "slide_from_bottom" }}
           />
+          <Stack.Screen
+            name="blocked"
+            options={{ headerShown: true, title: "Blocked accounts", headerStyle: { backgroundColor: colors.background }, headerTintColor: colors.text }}
+          />
         </Stack>
       </AuthProvider>
     </SafeAreaProvider>

@@ -5,10 +5,25 @@ Native iOS + Android app for StrikersFeed. **Separate Expo project** (its own
 mobile-only data model. The Next.js web app is untouched, so the Netlify deploy
 is unaffected.
 
-> Status: **foundation / scaffold**. Auth, the feed, and text posting are wired
-> to the shared backend. Media upload (image picker + Cloudflare Stream), the
-> full screen set, push notifications, and reporting/blocking are the next slices
-> — this is **not yet ready for store submission** (see "Remaining work").
+> Status: **foundation**. Auth, the feed, text + **image** posting, and
+> **moderation (report / block / delete account)** are wired to the shared
+> backend. Native **video** upload (Cloudflare Stream), the full screen set, and
+> push notifications are the remaining slices — see "Remaining work".
+
+## Backend requirements
+
+The app expects these to exist in the shared Supabase project:
+
+- Migrations `0001`–`0008` (profiles, posts, media, reactions, comments, avatars).
+- Migration **`0010_moderation.sql`** — `content_reports` + `blocked_users`
+  (report, block, and auto-hide). Report/block do nothing until this is run.
+- Edge Function **`delete-account`** for in-app account deletion (the app can't
+  hold the service-role key):
+  ```bash
+  supabase functions deploy delete-account
+  ```
+  The function reads `SUPABASE_SERVICE_ROLE_KEY` from the Edge Function
+  environment (auto-injected) — it is never shipped in the app bundle.
 
 ## Run it
 
@@ -96,18 +111,28 @@ Configured locally in `app.config.ts` / `eas.json`; **must be registered/confirm
 - [ ] Support URL  [ ] Privacy policy URL  [ ] Terms URL  [ ] Account-deletion URL
 - [ ] Review demo account  [ ] App review notes  [ ] Content-rating declarations
 
-## Moderation status (required before submission)
+## Moderation (implemented — required for UGC submission)
 
-Reporting (post/comment/profile), blocking, content-removal states, community
-guidelines, ToS, privacy policy, support contact, and account deletion are
-**not yet implemented in the app** — they must work (not be fake buttons) before
-either store will accept UGC. These are the top priority of the next slice.
+These are real, wired to Supabase (not placeholder buttons):
+
+- **Report** — the "…" menu on any other member's post opens a reason picker
+  (`ReportSheet`) that writes to `content_reports`. Content that crosses the
+  distinct-reporter threshold is auto-hidden by the DB trigger in `0010`.
+- **Block** — the same menu blocks an account; blocked authors are filtered from
+  the feed immediately and on reload. Manage them in **Profile → Blocked accounts**.
+- **Account deletion** — **Profile → Delete account** calls the `delete-account`
+  Edge Function and signs out.
+- **Policies** — Profile links to the live Community Guidelines / Privacy / Terms
+  pages on the website.
+
+Still to add here: reporting from comment/profile screens once those screens
+exist (the web app already reports posts **and** comments).
 
 ## Remaining work before store submission
-- Media upload (expo-image-picker + Cloudflare Stream direct upload) in the composer
+- Native **video** upload (Cloudflare Stream direct upload) + Medal link in the
+  composer — images already upload to Supabase Storage. Needs a Cloudflare account.
 - Full screens: notifications, messages, search, teams, team/player/tournament,
   match detail + thread, post detail, comments, bookmarks, settings, connections
 - Push notifications (token storage + preferences) — `expo-notifications`
-- Reporting + blocking + moderation integration (see above)
 - Deep-link route handling for all supported paths
 - Real store metadata, screenshots, and the identifier confirmations above

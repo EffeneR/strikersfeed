@@ -1,9 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Alert, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from "react-native";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import { getFeed, toggleLike, type FeedPost } from "@/lib/posts";
+import { blockUser, getBlockedIds } from "@/lib/moderation";
 import { isSupabaseConfigured } from "@/lib/supabase";
+import { useAuth } from "@/lib/auth";
+import { ReportSheet } from "@/components/ReportSheet";
 import { Screen } from "@/components/ui";
 import { colors, font, radius, spacing } from "@/theme/tokens";
 
@@ -17,15 +20,53 @@ function Avatar({ name, url }: { name: string; url: string | null }) {
   );
 }
 
-function PostCard({ post }: { post: FeedPost }) {
+function PostCard({
+  post,
+  currentUserId,
+  onBlocked,
+}: {
+  post: FeedPost;
+  currentUserId: string | null;
+  onBlocked: (authorId: string) => void;
+}) {
   const [liked, setLiked] = useState(false);
   const [likes, setLikes] = useState(post.likeCount);
+  const [reportOpen, setReportOpen] = useState(false);
+
+  const isOwn = !!currentUserId && post.author.id === currentUserId;
 
   const onLike = () => {
     const next = !liked;
     setLiked(next);
     setLikes((n) => n + (next ? 1 : -1));
     void toggleLike(post.id);
+  };
+
+  const confirmBlock = () => {
+    Alert.alert(
+      `Block @${post.author.handle}?`,
+      "You won't see their posts anymore.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Block",
+          style: "destructive",
+          onPress: async () => {
+            const { error } = await blockUser(post.author.id);
+            if (error) Alert.alert("Couldn't block", error);
+            else onBlocked(post.author.id);
+          },
+        },
+      ],
+    );
+  };
+
+  const openMenu = () => {
+    Alert.alert(`@${post.author.handle}`, undefined, [
+      { text: "Report post", onPress: () => setReportOpen(true) },
+      { text: `Block @${post.author.handle}`, style: "destructive", onPress: confirmBlock },
+      { text: "Cancel", style: "cancel" },
+    ]);
   };
 
   return (
@@ -37,6 +78,11 @@ function PostCard({ post }: { post: FeedPost }) {
           <Ionicons name="shield-checkmark" size={14} color={colors.accent} />
         )}
         <Text style={styles.handle}>@{post.author.handle}</Text>
+        {currentUserId && !isOwn && (
+          <Pressable onPress={openMenu} hitSlop={10} style={{ marginLeft: "auto" }}>
+            <Ionicons name="ellipsis-horizontal" size={18} color={colors.textMuted} />
+          </Pressable>
+        )}
       </View>
       {post.body ? <Text style={styles.body}>{post.body}</Text> : null}
       {post.imageUrls.map((uri) => (
@@ -52,6 +98,13 @@ function PostCard({ post }: { post: FeedPost }) {
           onPress={onLike}
         />
       </View>
+
+      <ReportSheet
+        visible={reportOpen}
+        onClose={() => setReportOpen(false)}
+        targetType="post"
+        targetId={post.id}
+      />
     </View>
   );
 }
@@ -75,6 +128,8 @@ function Action({
 }
 
 export default function Feed() {
+  const { session } = useAuth();
+  const currentUserId = session?.user?.id ?? null;
   const [posts, setPosts] = useState<FeedPost[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -84,8 +139,8 @@ export default function Feed() {
     if (initial) setLoading(true);
     setError(null);
     try {
-      const rows = await getFeed();
-      setPosts(rows);
+      const [rows, blocked] = await Promise.all([getFeed(), getBlockedIds()]);
+      setPosts(rows.filter((p) => !blocked.has(p.author.id)));
     } catch {
       setError("Couldn't load the feed. Pull to retry.");
     } finally {
@@ -106,6 +161,9 @@ export default function Feed() {
     if (more.length) setPosts((prev) => [...prev, ...more]);
   };
 
+  const onBlocked = (authorId: string) =>
+    setPosts((prev) => prev.filter((p) => p.author.id !== authorId));
+
   if (loading) {
     return (
       <Screen>
@@ -121,7 +179,9 @@ export default function Feed() {
       <FlatList
         data={posts}
         keyExtractor={(p) => p.id}
-        renderItem={({ item }) => <PostCard post={item} />}
+        renderItem={({ item }) => (
+          <PostCard post={item} currentUserId={currentUserId} onBlocked={onBlocked} />
+        )}
         onEndReached={loadMore}
         onEndReachedThreshold={0.5}
         refreshControl={

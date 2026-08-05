@@ -85,8 +85,16 @@ export const footerSections: FooterSection[] = [
     title: "Account",
     links: [
       { label: "Profile", href: "/profile" },
-      { label: "Notifications", href: "/notifications" },
-      { label: "Messages", href: "/messages" },
+      { label: "Settings", href: "/settings" },
+      { label: "Get the app", href: "/app" },
+    ],
+  },
+  {
+    title: "Legal",
+    links: [
+      { label: "Community Guidelines", href: "/community-guidelines" },
+      { label: "Terms of Service", href: "/terms" },
+      { label: "Privacy Policy", href: "/privacy" },
     ],
   },
 ];

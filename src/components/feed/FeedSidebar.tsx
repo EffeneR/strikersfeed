@@ -11,10 +11,10 @@ import type { FeedTab, FeedView } from "./feedState";
 
 const whoToFollow = getWhoToFollow(3);
 const footerLinks = [
-  { label: "About", href: "/" },
-  { label: "Help", href: "/" },
-  { label: "Privacy", href: "/" },
-  { label: "Terms", href: "/" },
+  { label: "Guidelines", href: "/community-guidelines" },
+  { label: "Get the app", href: "/app" },
+  { label: "Privacy", href: "/privacy" },
+  { label: "Terms", href: "/terms" },
 ];
 
 export function FeedSidebar({

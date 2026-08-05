@@ -3,8 +3,9 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Trash2 } from "lucide-react";
+import { Flag, Trash2 } from "lucide-react";
 import { useSession } from "@/components/providers/SessionProvider";
+import { ReportDialog } from "@/components/moderation/ReportDialog";
 import {
   addComment,
   deleteComment,
@@ -32,6 +33,7 @@ export function CommentThread({
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [reportingId, setReportingId] = useState<string | null>(null);
 
   const load = () => {
     void getPostComments(postId).then(setComments);
@@ -146,7 +148,7 @@ export function CommentThread({
                   <time className="text-ink-muted" dateTime={c.createdAt}>
                     {timeAgo(c.createdAt)}
                   </time>
-                  {c.isOwn && (
+                  {c.isOwn ? (
                     <button
                       type="button"
                       onClick={() => void remove(c.id)}
@@ -155,6 +157,17 @@ export function CommentThread({
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </button>
+                  ) : (
+                    signedIn && (
+                      <button
+                        type="button"
+                        onClick={() => setReportingId(c.id)}
+                        aria-label="Report reply"
+                        className="ml-auto text-ink-muted transition-colors hover:text-live"
+                      >
+                        <Flag className="h-3.5 w-3.5" />
+                      </button>
+                    )
                   )}
                 </div>
                 <p className="mt-0.5 whitespace-pre-wrap text-sm text-ink">{c.body}</p>
@@ -163,6 +176,14 @@ export function CommentThread({
           ))}
         </ul>
       )}
+
+      <ReportDialog
+        open={reportingId !== null}
+        onClose={() => setReportingId(null)}
+        targetType="comment"
+        targetId={reportingId ?? ""}
+        targetLabel="this reply"
+      />
     </div>
   );
 }

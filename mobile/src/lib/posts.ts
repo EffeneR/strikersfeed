@@ -105,6 +105,37 @@ export async function createTextPost(body: string): Promise<{ error?: string }> 
   return { error: error?.message };
 }
 
+export async function createImagePost(
+  body: string,
+  media: { storagePath: string; width?: number; height?: number }[],
+): Promise<{ error?: string }> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Please sign in." };
+  if (media.length === 0 || media.length > 4) return { error: "Attach between 1 and 4 images." };
+
+  const { data, error } = await supabase
+    .from("posts")
+    .insert({ author_id: user.id, type: "IMAGE", source: "NATIVE", body: body.trim() })
+    .select("id")
+    .single();
+  if (error || !data) return { error: error?.message ?? "Couldn't create the post." };
+
+  const rows = media.map((m, i) => ({
+    post_id: data.id,
+    media_type: "IMAGE",
+    provider: "supabase",
+    storage_path: m.storagePath,
+    width: m.width ?? null,
+    height: m.height ?? null,
+    position: i,
+  }));
+  const { error: mediaErr } = await supabase.from("post_media").insert(rows);
+  if (mediaErr) return { error: mediaErr.message };
+  return {};
+}
+
 export async function toggleLike(postId: string): Promise<void> {
   const {
     data: { user },
