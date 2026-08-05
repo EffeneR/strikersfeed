@@ -9,6 +9,7 @@ import { Avatar } from "@/components/ui/Avatar";
 import { Pill, ProBadge, VerifiedBadge } from "@/components/ui/badges";
 import { FollowButton } from "@/components/social/FollowButton";
 import { ComingSoon } from "@/components/ui/ComingSoon";
+import { OpenInAppButton } from "@/components/app/OpenInAppButton";
 
 export async function generateMetadata({
   params,
@@ -60,12 +61,15 @@ export default async function PlayerProfilePage({
 
   return (
     <PageContainer>
-      <Link
-        href="/players"
-        className="mb-5 inline-flex items-center gap-1.5 text-sm text-ink-muted transition-colors hover:text-ink"
-      >
-        <ArrowLeft className="h-4 w-4" /> All players
-      </Link>
+      <div className="mb-5 flex items-center justify-between gap-3">
+        <Link
+          href="/players"
+          className="inline-flex items-center gap-1.5 text-sm text-ink-muted transition-colors hover:text-ink"
+        >
+          <ArrowLeft className="h-4 w-4" /> All players
+        </Link>
+        <OpenInAppButton path={`/players/${username}`} />
+      </div>
 
       <Card className="overflow-hidden">
         <div className="h-28 bg-gradient-to-br from-surface via-background-secondary to-background sm:h-32" />

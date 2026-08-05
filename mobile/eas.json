@@ -1,0 +1,39 @@
+{
+  "cli": {
+    "version": ">= 12.0.0",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "ios": { "simulator": true },
+      "channel": "development"
+    },
+    "preview": {
+      "distribution": "internal",
+      "ios": { "simulator": false },
+      "android": { "buildType": "apk" },
+      "channel": "preview"
+    },
+    "production": {
+      "autoIncrement": true,
+      "channel": "production"
+    }
+  },
+  "submit": {
+    "production": {
+      "ios": {
+        "//": "Fill in after Apple Developer + App Store Connect are set up.",
+        "appleId": "REPLACE_APPLE_ID_EMAIL",
+        "ascAppId": "REPLACE_APP_STORE_CONNECT_APP_ID",
+        "appleTeamId": "REPLACE_APPLE_TEAM_ID"
+      },
+      "android": {
+        "//": "Path to the Google Play service-account JSON (keep out of git).",
+        "serviceAccountKeyPath": "./google-play-service-account.json",
+        "track": "internal"
+      }
+    }
+  }
+}

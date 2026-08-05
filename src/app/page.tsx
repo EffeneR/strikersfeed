@@ -6,10 +6,13 @@ import { FeaturedTeams } from "@/components/landing/FeaturedTeams";
 import { LandingRightRail } from "@/components/landing/LandingRightRail";
 import { FinalCta } from "@/components/landing/FinalCta";
 import { Footer } from "@/components/layout/Footer";
+import { AppPromotionSection } from "@/components/app/AppPromotionSection";
+import { MobileAppBanner } from "@/components/app/MobileAppBanner";
 
 export default function HomePage() {
   return (
     <>
+      <MobileAppBanner />
       <Hero />
 
       <div className="container-shell py-10 lg:py-14">
@@ -26,6 +29,7 @@ export default function HomePage() {
         </div>
       </div>
 
+      <AppPromotionSection />
       <FinalCta />
       <Footer />
     </>
