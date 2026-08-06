@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { ActivityIndicator, FlatList, StyleSheet, Text, View, RefreshControl } from "react-native";
+import { useFocusEffect } from "expo-router";
 import { getFeed, type FeedPost } from "@/lib/posts";
 import { getBlockedIds } from "@/lib/moderation";
 import { isSupabaseConfigured } from "@/lib/supabase";
@@ -30,10 +31,19 @@ export default function Feed() {
     }
   }, []);
 
-  useEffect(() => {
-    if (isSupabaseConfigured) void load(true);
-    else setLoading(false);
-  }, [load]);
+  // Full loader on first mount; silent refetch whenever the tab regains focus
+  // (e.g. after composing a post) so new content appears without a manual pull.
+  const didInitial = useRef(false);
+  useFocusEffect(
+    useCallback(() => {
+      if (!isSupabaseConfigured) {
+        setLoading(false);
+        return;
+      }
+      void load(!didInitial.current);
+      didInitial.current = true;
+    }, [load]),
+  );
 
   const loadMore = async () => {
     const last = posts[posts.length - 1];

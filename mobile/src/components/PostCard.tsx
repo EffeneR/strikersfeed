@@ -35,15 +35,22 @@ export function PostCard({
   };
   const openAuthor = () => router.push(`/user/${post.author.id}`);
 
-  const onLike = () => {
+  const onLike = async () => {
     const next = !liked;
     setLiked(next);
     setLikes((n) => n + (next ? 1 : -1));
-    void toggleReaction(post.id, "like");
+    const res = await toggleReaction(post.id, "like");
+    if (res.error) {
+      // Roll back the optimistic update on failure.
+      setLiked(!next);
+      setLikes((n) => n + (next ? -1 : 1));
+    }
   };
-  const onBookmark = () => {
-    setBookmarked((b) => !b);
-    void toggleReaction(post.id, "bookmark");
+  const onBookmark = async () => {
+    const next = !bookmarked;
+    setBookmarked(next);
+    const res = await toggleReaction(post.id, "bookmark");
+    if (res.error) setBookmarked(!next);
   };
 
   const confirmDelete = () =>

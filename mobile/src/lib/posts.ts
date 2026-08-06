@@ -125,6 +125,7 @@ export async function getFeed(cursor?: string, limit = 20): Promise<FeedPost[]> 
     .from("posts")
     .select(SELECT)
     .in("type", ["TEXT", "IMAGE", "MEDAL_CLIP"])
+    .is("deleted_at", null)
     .order("created_at", { ascending: false })
     .limit(limit);
   if (cursor) query = query.lt("created_at", cursor);
@@ -136,7 +137,12 @@ export async function getFeed(cursor?: string, limit = 20): Promise<FeedPost[]> 
 
 /** A single post by id (for the post-detail screen). */
 export async function getPost(id: string): Promise<FeedPost | null> {
-  const { data, error } = await supabase.from("posts").select(SELECT).eq("id", id).maybeSingle();
+  const { data, error } = await supabase
+    .from("posts")
+    .select(SELECT)
+    .eq("id", id)
+    .is("deleted_at", null)
+    .maybeSingle();
   if (error || !data) return null;
   const [withReactions] = await attachViewerReactions([mapRow(data as unknown as RawRow)]);
   return withReactions;
@@ -164,9 +170,10 @@ export async function getBookmarks(): Promise<FeedPost[]> {
 
   const { data, error } = await supabase
     .from("post_reactions")
-    .select(`created_at, posts ( ${SELECT} )`)
+    .select(`created_at, posts!inner ( ${SELECT} )`)
     .eq("user_id", user.id)
     .eq("kind", "bookmark")
+    .is("posts.deleted_at", null)
     .order("created_at", { ascending: false })
     .limit(50);
   if (error || !data) return [];
@@ -185,6 +192,7 @@ export async function searchPosts(q: string, limit = 20): Promise<FeedPost[]> {
     .from("posts")
     .select(SELECT)
     .in("type", ["TEXT", "IMAGE", "MEDAL_CLIP"])
+    .is("deleted_at", null)
     .ilike("body", `%${term}%`)
     .order("created_at", { ascending: false })
     .limit(limit);
@@ -244,25 +252,38 @@ export async function deletePost(id: string): Promise<{ error?: string }> {
   return { error: error?.message };
 }
 
-/** Toggle a reaction (like / bookmark / repost). Returns the new on/off state. */
-export async function toggleReaction(postId: string, kind: ReactionKind): Promise<boolean> {
+export interface ReactionResult {
+  /** The resulting on/off state (best-effort). */
+  active: boolean;
+  /** Set when the write failed — the caller should revert its optimistic update. */
+  error?: string;
+}
+
+/** Toggle a reaction (like / bookmark / repost). Reports failures so the UI can
+ *  roll back an optimistic change instead of silently drifting out of sync. */
+export async function toggleReaction(postId: string, kind: ReactionKind): Promise<ReactionResult> {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return false;
+  if (!user) return { active: false, error: "Please sign in." };
 
-  const { data: existing } = await supabase
+  const { data: existing, error: selErr } = await supabase
     .from("post_reactions")
     .select("id")
     .eq("post_id", postId)
     .eq("user_id", user.id)
     .eq("kind", kind)
     .maybeSingle();
+  if (selErr) return { active: false, error: selErr.message };
 
   if (existing) {
-    await supabase.from("post_reactions").delete().eq("id", existing.id);
-    return false;
+    const { error } = await supabase.from("post_reactions").delete().eq("id", existing.id);
+    if (error) return { active: true, error: error.message };
+    return { active: false };
   }
-  await supabase.from("post_reactions").insert({ post_id: postId, user_id: user.id, kind });
-  return true;
+  const { error } = await supabase
+    .from("post_reactions")
+    .insert({ post_id: postId, user_id: user.id, kind });
+  if (error) return { active: false, error: error.message };
+  return { active: true };
 }

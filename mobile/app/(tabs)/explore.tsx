@@ -83,10 +83,18 @@ export default function Explore() {
               <Text style={[styles.section, { marginTop: spacing.xl }]}>Trending</Text>
               <View style={styles.group}>
                 {TRENDING.map((t, i) => (
-                  <View key={t} style={[styles.trend, i < TRENDING.length - 1 && styles.trendBorder]}>
+                  <Pressable
+                    key={t}
+                    onPress={() => setQ(t)}
+                    style={({ pressed }) => [
+                      styles.trend,
+                      i < TRENDING.length - 1 && styles.trendBorder,
+                      pressed && { backgroundColor: colors.surface },
+                    ]}
+                  >
                     <Text style={styles.trendText}>{t}</Text>
                     <Ionicons name="trending-up" size={15} color={colors.textMuted} />
-                  </View>
+                  </Pressable>
                 ))}
               </View>
             </View>

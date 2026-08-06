@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@/lib/auth";
 import { getProfile, type ProfileView } from "@/lib/profiles";
@@ -32,9 +32,12 @@ export default function Profile() {
   const email = session?.user?.email ?? "";
   const [profile, setProfile] = useState<ProfileView | null>(null);
 
-  useEffect(() => {
-    if (uid) void getProfile(uid).then(setProfile);
-  }, [uid]);
+  // Refetch on focus so edits made in Settings → Edit profile show on return.
+  useFocusEffect(
+    useCallback(() => {
+      if (uid) void getProfile(uid).then(setProfile);
+    }, [uid]),
+  );
 
   const name = profile?.displayName ?? (session?.user?.user_metadata?.display_name as string) ?? "You";
   const handle = profile?.username ?? email.split("@")[0] ?? "member";
