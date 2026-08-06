@@ -15,6 +15,7 @@ import type { ExpoConfig } from "expo/config";
 const config: ExpoConfig = {
   name: "StrikersFeed",
   slug: "strikersfeed",
+  owner: "effeners-team",
   scheme: "strikersfeed",
   version: "0.1.0",
   orientation: "portrait",
@@ -54,8 +55,7 @@ const config: ExpoConfig = {
   ],
   extra: {
     router: { origin: false },
-    // Set by `eas init` — placeholder until then.
-    eas: { projectId: "REPLACE_WITH_EAS_PROJECT_ID" },
+    eas: { projectId: "8397db75-fda3-48d3-af43-e075adbc7fdc" },
   },
   experiments: { typedRoutes: true },
 };
