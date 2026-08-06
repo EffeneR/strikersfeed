@@ -1,20 +1,25 @@
 "use client";
 
 import { useState } from "react";
-import { Link2, MoreHorizontal, Pencil, Trash2, VolumeX } from "lucide-react";
+import { Ban, Flag, Link2, MoreHorizontal, Pencil, Trash2, VolumeX } from "lucide-react";
 
 /**
- * Per-post overflow menu. Copy-link / mute are always available; Edit + Delete
- * appear only when handlers are supplied (i.e. the viewer owns the post).
+ * Per-post overflow menu. Copy-link is always available; Edit + Delete appear
+ * for the post's owner, while Report + Block appear for other people's posts
+ * (only for real, persisted content — handlers are wired by the caller).
  */
 export function PostMenu({
   authorHandle,
   onEdit,
   onDelete,
+  onReport,
+  onBlock,
 }: {
   authorHandle: string;
   onEdit?: () => void;
   onDelete?: () => void;
+  onReport?: () => void;
+  onBlock?: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -88,7 +93,26 @@ export function PostMenu({
             >
               <Link2 className="h-4 w-4" /> Copy link
             </button>
-            {!onEdit && !onDelete && (
+            {(onReport || onBlock) && <div className="my-1 h-px bg-line" />}
+            {onReport && (
+              <button
+                type="button"
+                onClick={() => runAction(onReport)}
+                className="flex w-full items-center gap-2 px-3 py-2 text-sm text-ink transition-colors hover:bg-surface-hover"
+              >
+                <Flag className="h-4 w-4" /> Report post
+              </button>
+            )}
+            {onBlock && (
+              <button
+                type="button"
+                onClick={() => runAction(onBlock)}
+                className="flex w-full items-center gap-2 px-3 py-2 text-sm text-live transition-colors hover:bg-surface-hover"
+              >
+                <Ban className="h-4 w-4" /> Block @{authorHandle}
+              </button>
+            )}
+            {!onEdit && !onDelete && !onReport && !onBlock && (
               <button
                 type="button"
                 onClick={() => setOpen(false)}

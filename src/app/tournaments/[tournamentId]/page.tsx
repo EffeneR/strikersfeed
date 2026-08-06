@@ -8,6 +8,7 @@ import { PageContainer } from "@/components/layout/PageContainer";
 import { Card } from "@/components/ui/Card";
 import { Pill } from "@/components/ui/badges";
 import { ComingSoon } from "@/components/ui/ComingSoon";
+import { OpenInAppButton } from "@/components/app/OpenInAppButton";
 
 export async function generateMetadata({
   params,
@@ -32,12 +33,15 @@ export default async function TournamentDetailPage({
 
   return (
     <PageContainer>
-      <Link
-        href="/tournaments"
-        className="mb-5 inline-flex items-center gap-1.5 text-sm text-ink-muted transition-colors hover:text-ink"
-      >
-        <ArrowLeft className="h-4 w-4" /> All tournaments
-      </Link>
+      <div className="mb-5 flex items-center justify-between gap-3">
+        <Link
+          href="/tournaments"
+          className="inline-flex items-center gap-1.5 text-sm text-ink-muted transition-colors hover:text-ink"
+        >
+          <ArrowLeft className="h-4 w-4" /> All tournaments
+        </Link>
+        <OpenInAppButton path={`/tournaments/${t.slug}`} />
+      </div>
 
       <Card className="p-6">
         <div className="flex flex-wrap items-start justify-between gap-4">

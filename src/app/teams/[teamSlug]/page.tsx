@@ -11,6 +11,7 @@ import { Avatar } from "@/components/ui/Avatar";
 import { Pill, VerifiedBadge } from "@/components/ui/badges";
 import { FollowButton } from "@/components/social/FollowButton";
 import { ComingSoon } from "@/components/ui/ComingSoon";
+import { OpenInAppButton } from "@/components/app/OpenInAppButton";
 
 export async function generateMetadata({
   params,
@@ -35,12 +36,15 @@ export default async function TeamDetailPage({
 
   return (
     <PageContainer>
-      <Link
-        href="/teams"
-        className="mb-5 inline-flex items-center gap-1.5 text-sm text-ink-muted transition-colors hover:text-ink"
-      >
-        <ArrowLeft className="h-4 w-4" /> All teams
-      </Link>
+      <div className="mb-5 flex items-center justify-between gap-3">
+        <Link
+          href="/teams"
+          className="inline-flex items-center gap-1.5 text-sm text-ink-muted transition-colors hover:text-ink"
+        >
+          <ArrowLeft className="h-4 w-4" /> All teams
+        </Link>
+        <OpenInAppButton path={`/teams/${team.slug}`} />
+      </div>
 
       <Card className="overflow-hidden">
         <div className="h-28 bg-gradient-to-br from-surface via-background-secondary to-background sm:h-36" />

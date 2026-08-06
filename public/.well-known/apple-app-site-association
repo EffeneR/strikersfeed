@@ -1,0 +1,17 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appID": "REPLACE_APPLE_TEAM_ID.club.strikersfeed.app",
+        "paths": [
+          "/posts/*",
+          "/matches/*",
+          "/players/*",
+          "/teams/*",
+          "/tournaments/*"
+        ]
+      }
+    ]
+  }
+}

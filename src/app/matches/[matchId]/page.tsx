@@ -9,6 +9,7 @@ import { PageContainer } from "@/components/layout/PageContainer";
 import { Card } from "@/components/ui/Card";
 import { TeamCrest } from "@/components/ui/TeamCrest";
 import { LiveBadge, Pill } from "@/components/ui/badges";
+import { OpenInAppButton } from "@/components/app/OpenInAppButton";
 
 export async function generateMetadata({
   params,
@@ -58,12 +59,15 @@ export default async function MatchDetailPage({
 
   return (
     <PageContainer>
-      <Link
-        href="/matches"
-        className="mb-5 inline-flex items-center gap-1.5 text-sm text-ink-muted transition-colors hover:text-ink"
-      >
-        <ArrowLeft className="h-4 w-4" /> All matches
-      </Link>
+      <div className="mb-5 flex items-center justify-between gap-3">
+        <Link
+          href="/matches"
+          className="inline-flex items-center gap-1.5 text-sm text-ink-muted transition-colors hover:text-ink"
+        >
+          <ArrowLeft className="h-4 w-4" /> All matches
+        </Link>
+        <OpenInAppButton path={`/matches/${match.id}`} />
+      </div>
 
       {/* Scoreboard */}
       <Card className="overflow-hidden">

@@ -7,18 +7,26 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "mobile:start": "cd mobile && npx expo start",
+    "mobile:ios": "cd mobile && npx expo start --ios",
+    "mobile:android": "cd mobile && npx expo start --android",
+    "mobile:lint": "cd mobile && npm run lint",
+    "mobile:typecheck": "cd mobile && npm run typecheck",
+    "mobile:build:preview": "cd mobile && npx eas build --profile preview"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",
     "@supabase/supabase-js": "^2.111.0",
     "lucide-react": "^0.475.0",
     "next": "^15.1.6",
+    "qrcode": "^1.5.4",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },
   "devDependencies": {
     "@types/node": "^22.10.7",
+    "@types/qrcode": "^1.5.6",
     "@types/react": "^19.0.7",
     "@types/react-dom": "^19.0.3",
     "autoprefixer": "^10.4.20",

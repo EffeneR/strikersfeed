@@ -320,6 +320,8 @@ export interface AuthorView {
   avatarUrl: string;
   isVerified: boolean;
   isPro?: boolean;
+  /** Owns a verified Steam account (anti-impersonation). */
+  steamVerified?: boolean;
   type: AccountType | "team";
   profileHref: string;
 }

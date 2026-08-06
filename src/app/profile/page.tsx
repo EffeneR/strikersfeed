@@ -6,7 +6,7 @@ import { PageContainer } from "@/components/layout/PageContainer";
 import { Card } from "@/components/ui/Card";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
-import { Pill, ProBadge, VerifiedBadge } from "@/components/ui/badges";
+import { Pill, ProBadge, SteamBadge, VerifiedBadge } from "@/components/ui/badges";
 import { FeedPost } from "@/components/feed/posts/FeedPost";
 import { DemoRolePill } from "@/components/profile/DemoRolePill";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
@@ -48,8 +48,9 @@ export default async function ProfilePage() {
                   className="ring-4 ring-background-secondary"
                 />
                 <div className="pb-1">
-                  <h1 className="font-condensed text-2xl font-bold tracking-wide text-ink sm:text-3xl">
+                  <h1 className="flex items-center gap-1.5 font-condensed text-2xl font-bold tracking-wide text-ink sm:text-3xl">
                     {realUser.displayName ?? "Your profile"}
+                    {realUser.verificationStatus !== "none" && <SteamBadge className="h-5 w-5" />}
                   </h1>
                   <p className="text-sm text-ink-muted">@{realUser.username ?? "you"}</p>
                 </div>
