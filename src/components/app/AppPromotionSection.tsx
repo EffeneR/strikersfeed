@@ -1,54 +1,76 @@
-import { Bell, Clapperboard, MessagesSquare, Users } from "lucide-react";
+import Link from "next/link";
+import { ArrowRight, Bell, Clapperboard, MessagesSquare, Trophy } from "lucide-react";
 import { AppAvailabilityBadge } from "./AppAvailabilityBadge";
 import { AppStoreButtons } from "./AppStoreButtons";
 import { AppDownloadQRCode } from "./AppDownloadQRCode";
-import { PhoneFeedMockup } from "./PhoneFeedMockup";
+import { LightStreak } from "./LightStreak";
+import { HeroPhones } from "./PhoneShowcase";
 
-const FEATURES = [
-  { icon: Bell, label: "Instant match alerts" },
-  { icon: Clapperboard, label: "Upload clips anywhere" },
-  { icon: Users, label: "Follow players and teams" },
-  { icon: MessagesSquare, label: "Join every match discussion" },
+const CHIPS = [
+  { icon: Bell, label: "Live match alerts" },
+  { icon: Clapperboard, label: "Clip & highlights" },
+  { icon: MessagesSquare, label: "Community chat" },
+  { icon: Trophy, label: "Tournaments" },
 ];
 
-/** Homepage "app in your pocket" section. */
+/** Homepage "app in your pocket" promo band. */
 export function AppPromotionSection() {
   return (
-    <section className="border-t border-line bg-background-secondary">
-      <div className="container-shell grid items-center gap-10 py-14 lg:grid-cols-[1.1fr_1fr]">
+    <section className="relative overflow-hidden border-t border-line bg-background-secondary">
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute inset-0 bg-[radial-gradient(110%_120%_at_10%_40%,rgba(182,255,46,0.09),transparent_55%)]" />
+        <LightStreak className="opacity-40" />
+      </div>
+
+      <div className="container-shell relative grid items-center gap-10 py-14 lg:grid-cols-[1.1fr_1fr]">
         <div>
-          <AppAvailabilityBadge className="mb-4" />
-          <h2 className="font-condensed text-3xl font-bold tracking-wide text-ink lg:text-4xl">
-            StrikersFeed in your pocket
+          <div className="mb-4 flex items-center gap-2">
+            <span className="rounded-full bg-accent px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-black">
+              New
+            </span>
+            <AppAvailabilityBadge />
+          </div>
+
+          <h2 className="font-condensed text-3xl font-bold tracking-wide text-ink lg:text-5xl">
+            StrikersFeed in <span className="text-accent">your pocket</span>
           </h2>
           <p className="mt-3 max-w-lg text-base text-ink-muted">
-            Follow matches, post clips and join the discussion wherever you play.
+            Never miss a moment. Follow matches, join conversations and connect with
+            the Strikers community — anytime, anywhere.
           </p>
 
-          <ul className="mt-6 grid max-w-lg grid-cols-1 gap-3 sm:grid-cols-2">
-            {FEATURES.map((f) => {
-              const Icon = f.icon;
+          <ul className="mt-6 flex flex-wrap gap-2.5">
+            {CHIPS.map((c) => {
+              const Icon = c.icon;
               return (
-                <li key={f.label} className="flex items-center gap-2.5 text-sm text-ink">
-                  <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-surface text-accent ring-1 ring-inset ring-line">
-                    <Icon className="h-4 w-4" />
-                  </span>
-                  {f.label}
+                <li
+                  key={c.label}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-line bg-surface/60 px-3 py-1.5 text-xs font-medium text-ink"
+                >
+                  <Icon className="h-3.5 w-3.5 text-accent" /> {c.label}
                 </li>
               );
             })}
           </ul>
 
-          <div className="mt-8 flex flex-wrap items-center gap-6">
+          <div className="mt-8 flex flex-wrap items-center gap-5">
             <AppStoreButtons />
-            <div className="hidden sm:block">
-              <AppDownloadQRCode size={128} />
+            <div className="hidden items-center gap-3 rounded-2xl border border-line bg-surface/60 p-3 sm:flex">
+              <AppDownloadQRCode size={92} className="!p-2" />
+              <span className="max-w-[6rem] text-xs font-medium text-ink-muted">Scan to download</span>
             </div>
           </div>
+
+          <Link
+            href="/app"
+            className="mt-6 inline-flex items-center gap-1.5 text-sm font-semibold text-accent transition-colors hover:text-accent-hover"
+          >
+            Explore the app <ArrowRight className="h-4 w-4" />
+          </Link>
         </div>
 
-        <div className="flex justify-center lg:justify-end">
-          <PhoneFeedMockup />
+        <div className="hidden lg:flex lg:justify-end">
+          <HeroPhones />
         </div>
       </div>
     </section>
