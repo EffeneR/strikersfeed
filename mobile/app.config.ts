@@ -49,6 +49,8 @@ const config: ExpoConfig = {
   },
   plugins: [
     "expo-router",
+    "expo-asset",
+    "expo-font",
     "expo-secure-store",
     ["expo-image-picker", { photosPermission: "Allow StrikersFeed to access your photos to post clips and images." }],
     "expo-notifications",
