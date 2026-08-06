@@ -16,6 +16,7 @@ import { MOBILE_APP_STATUS } from "@/config/mobileApp";
 import { Footer } from "@/components/layout/Footer";
 import { AppAvailabilityBadge } from "@/components/app/AppAvailabilityBadge";
 import { AppStoreButtons } from "@/components/app/AppStoreButtons";
+import { AndroidApkButton } from "@/components/app/AndroidApkButton";
 import { AppDownloadQRCode } from "@/components/app/AppDownloadQRCode";
 import { LightStreak } from "@/components/app/LightStreak";
 import { HeroPhones, ScreenshotStrip } from "@/components/app/PhoneShowcase";
@@ -78,6 +79,7 @@ export default function AppLandingPage() {
               on iOS and Android.
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-5">
+              <AndroidApkButton />
               <AppStoreButtons />
               <div className="hidden items-center gap-3 rounded-2xl border border-line bg-surface/60 p-3 sm:flex">
                 <AppDownloadQRCode size={96} className="!p-2" />
@@ -178,7 +180,10 @@ export default function AppLandingPage() {
               Never miss a moment. Download StrikersFeed and take the whole
               community with you — anytime, anywhere.
             </p>
-            <AppStoreButtons className="justify-center" />
+            <div className="flex flex-wrap items-center justify-center gap-4">
+              <AndroidApkButton />
+              <AppStoreButtons className="justify-center" />
+            </div>
           </div>
         </div>
       </section>

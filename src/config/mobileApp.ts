@@ -43,6 +43,32 @@ const ANDROID_APP_URL = safeStoreUrl(process.env.NEXT_PUBLIC_ANDROID_APP_URL);
 const TESTFLIGHT_URL = safeStoreUrl(process.env.NEXT_PUBLIC_TESTFLIGHT_URL);
 const ANDROID_BETA_URL = safeStoreUrl(process.env.NEXT_PUBLIC_ANDROID_BETA_URL);
 
+/**
+ * Direct Android APK (EAS build). This is a real, installable download that
+ * doesn't need the Play Store — hosted on Expo's artifact CDN, so it has its own
+ * allowlist (the store hosts above deliberately exclude it). Overridable per
+ * environment via NEXT_PUBLIC_ANDROID_APK_URL; falls back to the latest build.
+ */
+const ALLOWED_APK_HOSTS = new Set(["expo.dev"]);
+
+export function safeApkUrl(raw: string | undefined | null): string | null {
+  if (!raw) return null;
+  try {
+    const url = new URL(raw);
+    if (url.protocol !== "https:") return null;
+    if (!ALLOWED_APK_HOSTS.has(url.hostname.toLowerCase())) return null;
+    return url.toString();
+  } catch {
+    return null;
+  }
+}
+
+const DEFAULT_ANDROID_APK_URL =
+  "https://expo.dev/artifacts/eas/SXe9cPX2_7RLzbOfbC2vLXmXTht_OTAvbnJX8LCwf0E.apk";
+
+export const ANDROID_APK_URL: string | null =
+  safeApkUrl(process.env.NEXT_PUBLIC_ANDROID_APK_URL) ?? safeApkUrl(DEFAULT_ANDROID_APK_URL);
+
 export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://strikersfeed.club";
 export const DOWNLOAD_URL = `${SITE_URL.replace(/\/$/, "")}/download`;
 
