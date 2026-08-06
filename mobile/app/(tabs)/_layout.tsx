@@ -1,10 +1,18 @@
+import { useEffect } from "react";
 import { Redirect, Tabs, router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@/lib/auth";
+import { registerForPush } from "@/lib/notifications";
 import { colors } from "@/theme/tokens";
 
 export default function TabsLayout() {
   const { session, loading } = useAuth();
+
+  // Register this device for push once we have a signed-in session (best-effort).
+  useEffect(() => {
+    if (session) void registerForPush();
+  }, [session]);
+
   if (!loading && !session) return <Redirect href="/(auth)/sign-in" />;
 
   return (
