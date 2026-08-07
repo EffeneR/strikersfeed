@@ -8,7 +8,7 @@ import { useSession } from "@/components/providers/SessionProvider";
 import { Logo } from "@/components/layout/Logo";
 import { siteConfig } from "@/config/site";
 import { accountRoles, type AccountRole } from "@/config/accountRoles";
-import { isSupabaseConfigured, STEAM_ENABLED } from "@/lib/supabase/config";
+import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { signInAction, signUpAction } from "@/lib/auth/actions";
 import { cn } from "@/lib/cn";
 import { Gamepad2 } from "lucide-react";
@@ -42,7 +42,13 @@ function registerFields(role: AccountRole | null): Field[] {
   ];
 }
 
-export function AuthCard({ mode }: { mode: "login" | "register" }) {
+export function AuthCard({
+  mode,
+  steamEnabled = false,
+}: {
+  mode: "login" | "register";
+  steamEnabled?: boolean;
+}) {
   const router = useRouter();
   const { enterDemo } = useSession();
   const [submitting, setSubmitting] = useState(false);
@@ -153,7 +159,7 @@ export function AuthCard({ mode }: { mode: "login" | "register" }) {
             : "Sign in to pick up where you left off."}
         </p>
 
-        {STEAM_ENABLED && (
+        {steamEnabled && (
           <>
             <a
               href="/api/auth/steam"
