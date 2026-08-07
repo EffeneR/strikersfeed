@@ -19,12 +19,20 @@ const SecureStoreAdapter = {
   removeItem: (key: string) => SecureStore.deleteItemAsync(key),
 };
 
-export const supabase = createClient(url, anonKey, {
-  auth: {
-    // SecureStore isn't available on web; fall back to default there.
-    storage: Platform.OS === "web" ? undefined : SecureStoreAdapter,
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: false,
+// `createClient` throws synchronously on an empty URL/key. Because this module is
+// imported by the root layout, an empty config would crash the app on launch
+// (native splash → instant close). Fall back to a harmless placeholder so the app
+// always boots; `isSupabaseConfigured` then gates any real backend use.
+export const supabase = createClient(
+  url || "https://unconfigured.supabase.co",
+  anonKey || "unconfigured-anon-key",
+  {
+    auth: {
+      // SecureStore isn't available on web; fall back to default there.
+      storage: Platform.OS === "web" ? undefined : SecureStoreAdapter,
+      autoRefreshToken: true,
+      persistSession: true,
+      detectSessionInUrl: false,
+    },
   },
-});
+);

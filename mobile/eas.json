@@ -12,11 +12,21 @@
     "preview": {
       "distribution": "internal",
       "ios": { "simulator": false },
-      "android": { "buildType": "apk" }
+      "android": { "buildType": "apk" },
+      "env": {
+        "EXPO_PUBLIC_SUPABASE_URL": "https://cugijmmzthggguxkhtkl.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1Z2lqbW16dGhnZ2d1eGtodGtsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU1MDA4MjUsImV4cCI6MjEwMTA3NjgyNX0.61tnLYXDhIlPwt1Mj3S-mDsZB7cQ_jNbkr2CXHLJqJE",
+        "EXPO_PUBLIC_SITE_URL": "https://strikersfeed.club"
+      }
     },
     "production": {
       "autoIncrement": true,
-      "android": { "buildType": "app-bundle" }
+      "android": { "buildType": "app-bundle" },
+      "env": {
+        "EXPO_PUBLIC_SUPABASE_URL": "https://cugijmmzthggguxkhtkl.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1Z2lqbW16dGhnZ2d1eGtodGtsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU1MDA4MjUsImV4cCI6MjEwMTA3NjgyNX0.61tnLYXDhIlPwt1Mj3S-mDsZB7cQ_jNbkr2CXHLJqJE",
+        "EXPO_PUBLIC_SITE_URL": "https://strikersfeed.club"
+      }
     }
   },
   "submit": {
