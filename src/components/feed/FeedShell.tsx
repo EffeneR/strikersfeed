@@ -3,6 +3,7 @@
 import { useMemo, useState, type ReactNode } from "react";
 import type { SocialPost, TextPost } from "@/types";
 import { CURRENT_USER_ID, DEMO_NOW, followingAuthorIds } from "@/data/mock";
+import { useSession } from "@/components/providers/SessionProvider";
 import { FeedSidebar } from "./FeedSidebar";
 import { FeedCenter } from "./FeedCenter";
 import type { FeedTab, FeedView } from "./feedState";
@@ -14,28 +15,36 @@ function isClip(post: SocialPost): boolean {
 export function FeedShell({
   initialTab = "for-you",
   initialPosts,
+  followingPosts = [],
   rightRail,
 }: {
   initialTab?: FeedTab;
   /** "For You" timeline from the server (real DB posts, padded with mock). */
   initialPosts: SocialPost[];
+  /** Real "Following" timeline (posts from accounts the viewer follows). */
+  followingPosts?: SocialPost[];
   rightRail: ReactNode;
 }) {
+  const { mode } = useSession();
+  const realMode = mode === "supabase";
   const [tab, setTab] = useState<FeedTab>(initialTab);
   const [view, setView] = useState<FeedView>("all");
   // Demo mode only: locally-composed posts (Supabase mode refreshes instead).
   const [sessionPosts, setSessionPosts] = useState<SocialPost[]>([]);
 
   const posts = useMemo(() => {
+    // Real mode: the server-provided following feed. Demo mode: filter by mock graph.
     const base =
       tab === "following"
-        ? initialPosts.filter((p) => followingAuthorIds.includes(p.authorId))
+        ? realMode
+          ? followingPosts
+          : initialPosts.filter((p) => followingAuthorIds.includes(p.authorId))
         : initialPosts;
     const combined = [...sessionPosts, ...base];
     if (view === "clips") return combined.filter(isClip);
     if (view === "bookmarks" || view === "saved") return [];
     return combined;
-  }, [tab, view, sessionPosts, initialPosts]);
+  }, [tab, view, sessionPosts, initialPosts, followingPosts, realMode]);
 
   const addSessionPost = (text: string) => {
     const newPost: TextPost = {

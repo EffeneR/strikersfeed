@@ -324,4 +324,6 @@ export interface AuthorView {
   steamVerified?: boolean;
   type: AccountType | "team";
   profileHref: string;
+  /** Whether the signed-in viewer follows this author (real mode only). */
+  viewerFollows?: boolean;
 }

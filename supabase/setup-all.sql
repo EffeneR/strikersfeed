@@ -1,11 +1,6 @@
--- StrikersFeed — complete backend setup (migrations 0001-0011)
--- ----------------------------------------------------------------
--- Paste this ENTIRE file into the Supabase SQL editor and press Run.
--- It is idempotent (safe to re-run) and creates everything the app
--- needs: profiles, posts, media, reactions, comments, moderation,
--- Steam identity, notifications, plus the post-images + avatars
--- storage buckets and all RLS policies + triggers.
--- Generated from supabase/migrations/*.sql.
+-- StrikersFeed — complete backend setup (migrations 0001-0013)
+-- Paste this ENTIRE file into the Supabase SQL editor and press Run. Idempotent.
+-- Creates all tables, RLS, triggers + the post-images/avatars storage buckets.
 
 
 -- ================================================================
@@ -874,4 +869,159 @@ create trigger device_tokens_touch before update on public.device_tokens
 drop trigger if exists notification_prefs_touch on public.notification_prefs;
 create trigger notification_prefs_touch before update on public.notification_prefs
   for each row execute function public.touch_updated_at();
+
+
+-- ================================================================
+--  0012_follows.sql
+-- ================================================================
+-- StrikersFeed — migration 0012: follows (social graph)
+--
+-- One row per (follower, followee). Denormalised follower_count/following_count
+-- on profiles kept in sync by a trigger, so counts read cheaply. RLS lets anyone
+-- read the graph but only manage their own follows.
+--
+-- Run in the Supabase SQL editor. Requires 0001 (profiles).
+
+-- 1. Counts on profiles -----------------------------------------------------
+alter table public.profiles add column if not exists follower_count  int not null default 0;
+alter table public.profiles add column if not exists following_count int not null default 0;
+
+-- 2. follows table ----------------------------------------------------------
+create table if not exists public.follows (
+  id          uuid primary key default gen_random_uuid(),
+  follower_id uuid not null references public.profiles (id) on delete cascade,
+  followee_id uuid not null references public.profiles (id) on delete cascade,
+  created_at  timestamptz not null default now(),
+  unique (follower_id, followee_id),
+  check (follower_id <> followee_id)
+);
+create index if not exists follows_follower_idx on public.follows (follower_id);
+create index if not exists follows_followee_idx on public.follows (followee_id);
+
+alter table public.follows enable row level security;
+
+drop policy if exists "Read follows" on public.follows;
+create policy "Read follows" on public.follows for select using (true);
+
+drop policy if exists "Follow as self" on public.follows;
+create policy "Follow as self" on public.follows for insert
+  with check (follower_id = auth.uid());
+
+drop policy if exists "Unfollow own" on public.follows;
+create policy "Unfollow own" on public.follows for delete
+  using (follower_id = auth.uid());
+
+-- 3. Keep denormalised counts in sync --------------------------------------
+create or replace function public.handle_follow_count()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if tg_op = 'INSERT' then
+    update public.profiles set follower_count  = follower_count  + 1 where id = new.followee_id;
+    update public.profiles set following_count = following_count + 1 where id = new.follower_id;
+  elsif tg_op = 'DELETE' then
+    update public.profiles set follower_count  = greatest(0, follower_count  - 1) where id = old.followee_id;
+    update public.profiles set following_count = greatest(0, following_count - 1) where id = old.follower_id;
+  end if;
+  return coalesce(new, old);
+end;
+$$;
+
+drop trigger if exists follows_count on public.follows;
+create trigger follows_count
+  after insert or delete on public.follows
+  for each row execute function public.handle_follow_count();
+
+
+-- ================================================================
+--  0013_notifications.sql
+-- ================================================================
+-- StrikersFeed — migration 0013: notifications
+--
+-- A real notifications feed populated by triggers when someone replies to your
+-- post, likes your post, or follows you. Self-actions are skipped. Rows are
+-- inserted by SECURITY DEFINER triggers (not clients); users may only read and
+-- mark-read their own. A Supabase Database Webhook on INSERT can fan these out
+-- to push via the `send-push` edge function.
+--
+-- Run in the Supabase SQL editor. Requires 0002 (posts), 0006 (post_reactions),
+-- 0007 (comments), 0012 (follows).
+
+do $$
+begin
+  if not exists (select 1 from pg_type where typname = 'notification_type') then
+    create type public.notification_type as enum ('reply', 'reaction', 'follow');
+  end if;
+end $$;
+
+create table if not exists public.notifications (
+  id         uuid primary key default gen_random_uuid(),
+  user_id    uuid not null references public.profiles (id) on delete cascade,  -- recipient
+  actor_id   uuid references public.profiles (id) on delete cascade,           -- who acted
+  type       public.notification_type not null,
+  post_id    uuid references public.posts (id) on delete cascade,
+  comment_id uuid references public.comments (id) on delete cascade,
+  read_at    timestamptz,
+  created_at timestamptz not null default now()
+);
+create index if not exists notifications_user_idx on public.notifications (user_id, created_at desc);
+
+alter table public.notifications enable row level security;
+
+-- Recipients read + mark-read their own; inserts come only from the triggers.
+drop policy if exists "Read own notifications" on public.notifications;
+create policy "Read own notifications" on public.notifications for select
+  using (user_id = auth.uid());
+
+drop policy if exists "Update own notifications" on public.notifications;
+create policy "Update own notifications" on public.notifications for update
+  using (user_id = auth.uid()) with check (user_id = auth.uid());
+
+-- reply → notify the post author
+create or replace function public.notify_on_comment()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare recipient uuid;
+begin
+  select author_id into recipient from public.posts where id = new.post_id;
+  if recipient is not null and recipient <> new.author_id then
+    insert into public.notifications (user_id, actor_id, type, post_id, comment_id)
+    values (recipient, new.author_id, 'reply', new.post_id, new.id);
+  end if;
+  return new;
+end; $$;
+drop trigger if exists comments_notify on public.comments;
+create trigger comments_notify after insert on public.comments
+  for each row execute function public.notify_on_comment();
+
+-- like → notify the post author (only likes, not reposts/bookmarks)
+create or replace function public.notify_on_reaction()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare recipient uuid;
+begin
+  if new.kind <> 'like' then return new; end if;
+  select author_id into recipient from public.posts where id = new.post_id;
+  if recipient is not null and recipient <> new.user_id then
+    insert into public.notifications (user_id, actor_id, type, post_id)
+    values (recipient, new.user_id, 'reaction', new.post_id);
+  end if;
+  return new;
+end; $$;
+drop trigger if exists reactions_notify on public.post_reactions;
+create trigger reactions_notify after insert on public.post_reactions
+  for each row execute function public.notify_on_reaction();
+
+-- follow → notify the followee
+create or replace function public.notify_on_follow()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  insert into public.notifications (user_id, actor_id, type)
+  values (new.followee_id, new.follower_id, 'follow');
+  return new;
+end; $$;
+drop trigger if exists follows_notify on public.follows;
+create trigger follows_notify after insert on public.follows
+  for each row execute function public.notify_on_follow();
 

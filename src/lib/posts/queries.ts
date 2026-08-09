@@ -3,6 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { isSupabaseConfigured, SUPABASE_URL } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/server";
 import { getBlockedUserIds } from "@/lib/moderation/queries";
+import { getFollowingIds } from "@/lib/social/queries";
 import { getForYouPosts } from "@/data/mock";
 
 /** Minimum real posts before we stop padding the feed with demo content. */
@@ -174,13 +175,15 @@ export async function getFeedPosts(): Promise<SocialPost[]> {
     const rows = result.data as unknown as Record<string, unknown>[];
     let mapped = rows.map(mapPostRow);
 
-    // Drop posts from accounts the viewer has blocked.
+    // Drop blocked authors; mark follow-state for the rest.
     const {
       data: { user },
     } = await supabase.auth.getUser();
     if (user) {
       const blocked = await getBlockedUserIds(supabase, user.id);
       if (blocked.size > 0) mapped = mapped.filter((p) => !blocked.has(p.authorId));
+      const following = await getFollowingIds(supabase, user.id);
+      for (const p of mapped) if (p.author) p.author.viewerFollows = following.has(p.authorId);
     }
 
     const realPosts = await attachViewerReactions(supabase, mapped);
@@ -189,6 +192,41 @@ export async function getFeedPosts(): Promise<SocialPost[]> {
     return [...realPosts, ...getForYouPosts()];
   } catch {
     return getForYouPosts();
+  }
+}
+
+/** "Following" feed — posts from accounts the viewer follows, plus their own.
+ *  Real content only (no mock padding); empty until the viewer follows people. */
+export async function getFollowingFeedPosts(): Promise<SocialPost[]> {
+  if (!isSupabaseConfigured()) return [];
+  try {
+    const supabase = await createClient();
+    if (!supabase) return [];
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return [];
+
+    const following = await getFollowingIds(supabase, user.id);
+    const authorIds = [user.id, ...following];
+
+    const result = await supabase
+      .from("posts")
+      .select(POST_SELECT)
+      .in("type", ["TEXT", "IMAGE", "MEDAL_CLIP"])
+      .in("author_id", authorIds)
+      .is("deleted_at", null)
+      .order("created_at", { ascending: false })
+      .limit(50);
+
+    if (result.error || !result.data) return [];
+    const rows = result.data as unknown as Record<string, unknown>[];
+    const mapped = rows.map(mapPostRow);
+    for (const p of mapped) if (p.author) p.author.viewerFollows = p.authorId !== user.id;
+    return attachViewerReactions(supabase, mapped);
+  } catch {
+    return [];
   }
 }
 

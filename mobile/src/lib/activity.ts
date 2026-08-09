@@ -1,22 +1,30 @@
 import { supabase } from "./supabase";
 
 /**
- * Activity feed = replies other people left on your posts. (Reaction rows are
- * RLS-restricted to their own owner, so "who liked your post" isn't queryable
- * by the recipient — replies are the honest, readable signal.)
+ * Notifications = the shared `notifications` table (migration 0013): replies,
+ * likes, and follows targeting you, written by DB triggers.
  */
+export type NotificationType = "reply" | "reaction" | "follow";
+
 export interface ActivityItem {
   id: string;
+  type: NotificationType;
+  read: boolean;
   createdAt: string;
-  postId: string;
-  snippet: string;
+  postId: string | null;
+  snippet?: string;
   actor: {
     id: string;
     displayName: string;
     handle: string;
     avatarUrl: string | null;
-  };
+  } | null;
 }
+
+const SELECT =
+  "id, type, read_at, created_at, post_id, actor_id, " +
+  "actor:profiles!actor_id ( id, username, display_name, avatar_url ), " +
+  "comment:comments!comment_id ( body )";
 
 export async function getActivity(limit = 40): Promise<ActivityItem[]> {
   const {
@@ -25,31 +33,47 @@ export async function getActivity(limit = 40): Promise<ActivityItem[]> {
   if (!user) return [];
 
   const { data } = await supabase
-    .from("comments")
-    .select(
-      "id, body, created_at, author_id, post_id, profiles ( id, username, display_name, avatar_url ), posts!inner ( author_id )",
-    )
-    .eq("posts.author_id", user.id)
-    .neq("author_id", user.id)
+    .from("notifications")
+    .select(SELECT)
+    .eq("user_id", user.id)
     .order("created_at", { ascending: false })
     .limit(limit);
-  if (!data) return [];
 
-  return (data as unknown as Record<string, unknown>[]).map((row) => {
-    const p = (Array.isArray(row.profiles) ? row.profiles[0] : row.profiles) as
+  return ((data ?? []) as unknown as Record<string, unknown>[]).map((row) => {
+    const a = (Array.isArray(row.actor) ? row.actor[0] : row.actor) as
       | { id: string; username: string | null; display_name: string | null; avatar_url: string | null }
+      | null;
+    const c = (Array.isArray(row.comment) ? row.comment[0] : row.comment) as
+      | { body: string | null }
       | null;
     return {
       id: row.id as string,
+      type: row.type as NotificationType,
+      read: !!row.read_at,
       createdAt: row.created_at as string,
-      postId: row.post_id as string,
-      snippet: (row.body as string) ?? "",
-      actor: {
-        id: p?.id ?? (row.author_id as string),
-        displayName: p?.display_name ?? p?.username ?? "Member",
-        handle: p?.username ?? "member",
-        avatarUrl: p?.avatar_url ?? null,
-      },
+      postId: (row.post_id as string) ?? null,
+      snippet: c?.body ?? undefined,
+      actor: a
+        ? {
+            id: a.id,
+            displayName: a.display_name ?? a.username ?? "Someone",
+            handle: a.username ?? "member",
+            avatarUrl: a.avatar_url ?? null,
+          }
+        : null,
     };
   });
+}
+
+/** Mark all of the signed-in user's notifications read. */
+export async function markAllActivityRead(): Promise<void> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return;
+  await supabase
+    .from("notifications")
+    .update({ read_at: new Date().toISOString() })
+    .eq("user_id", user.id)
+    .is("read_at", null);
 }

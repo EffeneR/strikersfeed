@@ -5,6 +5,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { getProfile, type ProfileView } from "@/lib/profiles";
 import { getPostsByAuthor, type FeedPost } from "@/lib/posts";
 import { blockUser } from "@/lib/moderation";
+import { getFollowCounts, isFollowing, toggleFollow } from "@/lib/follows";
 import { useAuth } from "@/lib/auth";
 import { PostCard } from "@/components/PostCard";
 import { Avatar } from "@/components/Avatar";
@@ -22,14 +23,33 @@ export default function UserProfile() {
   const [posts, setPosts] = useState<FeedPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [reportOpen, setReportOpen] = useState(false);
+  const [following, setFollowing] = useState(false);
+  const [counts, setCounts] = useState({ followers: 0, following: 0 });
+  const [followBusy, setFollowBusy] = useState(false);
 
   const load = useCallback(async () => {
     if (!id) return;
-    const [p, ps] = await Promise.all([getProfile(id), getPostsByAuthor(id)]);
+    const [p, ps, c] = await Promise.all([getProfile(id), getPostsByAuthor(id), getFollowCounts(id)]);
     setProfile(p);
     setPosts(ps);
+    setCounts(c);
+    if (currentUserId && currentUserId !== id) setFollowing(await isFollowing(id));
     setLoading(false);
-  }, [id]);
+  }, [id, currentUserId]);
+
+  const onToggleFollow = async () => {
+    if (!id || followBusy) return;
+    const next = !following;
+    setFollowing(next);
+    setCounts((c) => ({ ...c, followers: Math.max(0, c.followers + (next ? 1 : -1)) }));
+    setFollowBusy(true);
+    const res = await toggleFollow(id);
+    setFollowBusy(false);
+    if (res.error) {
+      setFollowing(!next);
+      setCounts((c) => ({ ...c, followers: Math.max(0, c.followers + (next ? -1 : 1)) }));
+    }
+  };
 
   useEffect(() => {
     void load();
@@ -85,6 +105,15 @@ export default function UserProfile() {
               ) : (
                 currentUserId && (
                   <View style={styles.ownerActions}>
+                    <Pressable
+                      style={[styles.followBtn, following && styles.followingBtn]}
+                      onPress={onToggleFollow}
+                      disabled={followBusy}
+                    >
+                      <Text style={[styles.followText, following && styles.followingText]}>
+                        {following ? "Following" : "Follow"}
+                      </Text>
+                    </Pressable>
                     <Pressable style={styles.iconBtn} onPress={() => setReportOpen(true)}>
                       <Ionicons name="flag-outline" size={16} color={colors.text} />
                     </Pressable>
@@ -105,6 +134,14 @@ export default function UserProfile() {
               @{profile.username ?? "member"}
               {profile.role ? ` · ${profile.role}` : ""}
             </Text>
+            <View style={styles.countsRow}>
+              <Text style={styles.countItem}>
+                <Text style={styles.countNum}>{counts.followers}</Text> Followers
+              </Text>
+              <Text style={styles.countItem}>
+                <Text style={styles.countNum}>{counts.following}</Text> Following
+              </Text>
+            </View>
             {profile.bio ? <Text style={styles.bio}>{profile.bio}</Text> : null}
             <Text style={styles.postsLabel}>Posts</Text>
           </View>
@@ -136,7 +173,14 @@ const styles = StyleSheet.create({
   topRow: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between" },
   editBtn: { borderColor: colors.border, borderWidth: 1, borderRadius: radius.pill, paddingHorizontal: 16, paddingVertical: 8 },
   editText: { color: colors.text, fontWeight: "600", fontSize: font.size.sm },
-  ownerActions: { flexDirection: "row", gap: spacing.sm },
+  ownerActions: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
+  followBtn: { backgroundColor: colors.accent, borderRadius: radius.pill, paddingHorizontal: 18, height: 36, alignItems: "center", justifyContent: "center" },
+  followingBtn: { backgroundColor: "transparent", borderColor: colors.border, borderWidth: 1 },
+  followText: { color: colors.black, fontWeight: "700", fontSize: font.size.sm },
+  followingText: { color: colors.text },
+  countsRow: { flexDirection: "row", gap: spacing.lg, marginTop: spacing.sm },
+  countItem: { color: colors.textMuted, fontSize: font.size.sm },
+  countNum: { color: colors.text, fontWeight: "700" },
   iconBtn: { borderColor: colors.border, borderWidth: 1, borderRadius: radius.pill, width: 36, height: 36, alignItems: "center", justifyContent: "center" },
   nameRow: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: spacing.md },
   name: { color: colors.text, fontSize: font.size.lg, fontWeight: "700" },
