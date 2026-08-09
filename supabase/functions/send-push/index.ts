@@ -1,14 +1,14 @@
 // StrikersFeed — `send-push` Edge Function
 //
-// Sends an Expo push notification to the author of a post when someone replies
-// to it. Intended to be triggered by a Supabase **Database Webhook** on INSERT
-// into `public.comments` (Dashboard → Database → Webhooks). The webhook posts
-// `{ type, table, record, old_record }`; we read the new comment, find the post
-// author, respect their notification prefs, and push to their devices.
+// Sends an Expo push when a notification is created. Triggered by a Supabase
+// **Database Webhook** on INSERT into `public.notifications` (Dashboard →
+// Database → Webhooks → the send-push function). The webhook posts
+// `{ type: "INSERT", table, record, old_record }`; we read the notification,
+// format a message for its type (reply / reaction / follow), respect the
+// recipient's notification prefs, and push to their devices via Expo.
 //
-// Uses the service-role key (auto-injected) to read across users' rows. Set an
-// optional shared secret to reject spoofed calls:
-//   supabase secrets set PUSH_WEBHOOK_SECRET=<random>
+// Uses the service-role key (auto-injected). Optional shared secret to reject
+// spoofed calls:  supabase secrets set PUSH_WEBHOOK_SECRET=<random>
 // then add header `x-webhook-secret: <random>` to the webhook.
 //
 // Deploy:  supabase functions deploy send-push --no-verify-jwt
@@ -25,17 +25,22 @@ Deno.serve(async (req: Request) => {
     return new Response("Unauthorized", { status: 401 });
   }
 
-  let payload: { type?: string; record?: Record<string, unknown> };
+  let payload: { record?: Record<string, unknown> };
   try {
     payload = await req.json();
   } catch {
     return new Response("Bad request", { status: 400 });
   }
 
-  const comment = payload.record;
-  if (!comment || typeof comment.post_id !== "string" || typeof comment.author_id !== "string") {
-    return json({ skipped: "not a comment insert" });
+  const n = payload.record;
+  if (!n || typeof n.user_id !== "string" || typeof n.type !== "string") {
+    return json({ skipped: "not a notification insert" });
   }
+
+  const recipientId = n.user_id as string;
+  const actorId = (n.actor_id as string) ?? null;
+  const type = n.type as string;
+  if (actorId && actorId === recipientId) return json({ skipped: "self" });
 
   const admin = createClient(
     Deno.env.get("SUPABASE_URL")!,
@@ -43,34 +48,35 @@ Deno.serve(async (req: Request) => {
     { auth: { autoRefreshToken: false, persistSession: false } },
   );
 
-  // Who owns the post?
-  const { data: post } = await admin
-    .from("posts")
-    .select("author_id")
-    .eq("id", comment.post_id)
-    .maybeSingle();
-  const recipientId = post?.author_id as string | undefined;
-  if (!recipientId || recipientId === comment.author_id) {
-    return json({ skipped: "no recipient / self-reply" });
-  }
-
-  // Respect the recipient's reply preference (default on).
+  // Respect the recipient's per-type preference (default on).
   const { data: prefs } = await admin
     .from("notification_prefs")
-    .select("replies")
+    .select("replies, follows")
     .eq("user_id", recipientId)
     .maybeSingle();
-  if (prefs && prefs.replies === false) return json({ skipped: "replies disabled" });
+  if (prefs) {
+    if (type === "reply" && prefs.replies === false) return json({ skipped: "replies off" });
+    if (type === "follow" && prefs.follows === false) return json({ skipped: "follows off" });
+  }
 
-  // Fetch the replier's handle for a nicer message.
-  const { data: replier } = await admin
-    .from("profiles")
-    .select("username, display_name")
-    .eq("id", comment.author_id)
-    .maybeSingle();
-  const who = replier?.display_name ?? replier?.username ?? "Someone";
+  // Actor's name for a nicer message.
+  let who = "Someone";
+  if (actorId) {
+    const { data: actor } = await admin
+      .from("profiles")
+      .select("username, display_name")
+      .eq("id", actorId)
+      .maybeSingle();
+    who = (actor?.display_name as string) ?? (actor?.username as string) ?? "Someone";
+  }
 
-  // Recipient's device tokens.
+  const title =
+    type === "reply"
+      ? `${who} replied to your post`
+      : type === "reaction"
+        ? `${who} liked your post`
+        : `${who} started following you`;
+
   const { data: tokens } = await admin
     .from("device_tokens")
     .select("token")
@@ -80,9 +86,8 @@ Deno.serve(async (req: Request) => {
   const messages = tokens.map((t) => ({
     to: (t as { token: string }).token,
     sound: "default",
-    title: `${who} replied to your post`,
-    body: String(comment.body ?? "").slice(0, 140),
-    data: { postId: comment.post_id },
+    title,
+    data: { type, postId: (n.post_id as string) ?? null, actorId },
   }));
 
   const res = await fetch(EXPO_PUSH_URL, {

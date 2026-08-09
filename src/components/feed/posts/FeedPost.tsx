@@ -8,6 +8,7 @@ import { useSession } from "@/components/providers/SessionProvider";
 import { deleteTextPost, updateTextPost } from "@/lib/posts/actions";
 import { blockUser } from "@/lib/moderation/actions";
 import { ReportDialog } from "@/components/moderation/ReportDialog";
+import { FollowButton } from "@/components/social/FollowButton";
 import { RichText } from "@/components/ui/RichText";
 import { PostAuthor } from "./PostAuthor";
 import { PostActions } from "./PostActions";
@@ -103,13 +104,23 @@ export function FeedPost({ post }: { post: SocialPost }) {
         createdAt={post.createdAt}
         pinned={post.pinned}
         menu={
-          <PostMenu
-            authorHandle={author.handle}
-            onEdit={canEdit ? () => setEditing(true) : undefined}
-            onDelete={isOwn ? remove : undefined}
-            onReport={canModerate ? () => setReporting(true) : undefined}
-            onBlock={canModerate ? block : undefined}
-          />
+          <div className="flex items-center gap-2">
+            {canModerate && author.id && (
+              <FollowButton
+                name={author.displayName}
+                userId={author.id}
+                initialFollowing={!!author.viewerFollows}
+                size="sm"
+              />
+            )}
+            <PostMenu
+              authorHandle={author.handle}
+              onEdit={canEdit ? () => setEditing(true) : undefined}
+              onDelete={isOwn ? remove : undefined}
+              onReport={canModerate ? () => setReporting(true) : undefined}
+              onBlock={canModerate ? block : undefined}
+            />
+          </div>
         }
       />
       {canModerate && (
