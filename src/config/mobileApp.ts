@@ -64,7 +64,7 @@ export function safeApkUrl(raw: string | undefined | null): string | null {
 }
 
 const DEFAULT_ANDROID_APK_URL =
-  "https://expo.dev/artifacts/eas/6vIqyHaLfLueppdvLRj0FicZlEOhClzZkEZRad3CsGA.apk";
+  "https://expo.dev/artifacts/eas/zCk7VdLNgw1VYpNte2BnFuJbNlxTldm1Kp64B5-Mh3o.apk";
 
 export const ANDROID_APK_URL: string | null =
   safeApkUrl(process.env.NEXT_PUBLIC_ANDROID_APK_URL) ?? safeApkUrl(DEFAULT_ANDROID_APK_URL);
