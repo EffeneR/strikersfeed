@@ -2,6 +2,7 @@ import { useState } from "react";
 import { KeyboardAvoidingView, Platform, View } from "react-native";
 import { Link, router } from "expo-router";
 import { useAuth } from "@/lib/auth";
+import { SteamButton } from "@/components/SteamButton";
 import { ErrorText, Field, Heading, Muted, PrimaryButton, Screen } from "@/components/ui";
 import { colors, spacing } from "@/theme/tokens";
 
@@ -34,6 +35,7 @@ export default function SignUp() {
         <Heading>Join StrikersFeed</Heading>
         <Muted>Create your account to join the community.</Muted>
         <View style={{ height: spacing.xl }} />
+        <SteamButton />
         <Field label="Display name" value={displayName} onChangeText={setDisplayName} placeholder="Your gamer tag" />
         <Field
           label="Email"

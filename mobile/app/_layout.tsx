@@ -42,6 +42,7 @@ export default function RootLayout() {
           <Stack.Screen name="settings/index" options={header("Settings")} />
           <Stack.Screen name="settings/profile" options={header("Edit profile")} />
           <Stack.Screen name="settings/notifications" options={header("Notifications")} />
+          <Stack.Screen name="settings/connections" options={header("Connect Steam")} />
           <Stack.Screen name="teams" options={header("Teams")} />
           <Stack.Screen name="players" options={header("Players")} />
           <Stack.Screen name="tournaments" options={header("Tournaments")} />

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { KeyboardAvoidingView, Platform, View } from "react-native";
 import { Link, router } from "expo-router";
 import { useAuth } from "@/lib/auth";
+import { SteamButton } from "@/components/SteamButton";
 import { ErrorText, Field, Heading, Muted, PrimaryButton, Screen } from "@/components/ui";
 import { colors, spacing } from "@/theme/tokens";
 
@@ -30,6 +31,7 @@ export default function SignIn() {
         <Heading>Welcome back</Heading>
         <Muted>Sign in to StrikersFeed.</Muted>
         <View style={{ height: spacing.xl }} />
+        <SteamButton />
         <Field
           label="Email"
           value={email}
