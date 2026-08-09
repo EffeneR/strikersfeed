@@ -6,7 +6,7 @@ import { deleteAccount } from "@/lib/moderation";
 import { Screen } from "@/components/ui";
 import { colors, font, radius, spacing } from "@/theme/tokens";
 
-const SITE = process.env.EXPO_PUBLIC_SITE_URL ?? "https://strikersfeed.club";
+const SITE = process.env.EXPO_PUBLIC_SITE_URL ?? "https://strikersfeed.netlify.app";
 
 function Row({
   icon,
@@ -66,7 +66,7 @@ export default function Settings() {
         <Group title="Account">
           <Row icon="person-outline" label="Edit profile" onPress={() => router.push("/settings/profile")} />
           <Row icon="notifications-outline" label="Notification preferences" onPress={() => router.push("/settings/notifications")} />
-          <Row icon="logo-steam" label="Connect Steam" external onPress={() => Linking.openURL(`${SITE}/settings/connections`)} />
+          <Row icon="logo-steam" label="Connect Steam" onPress={() => router.push("/settings/connections")} />
         </Group>
 
         <Group title="Safety">
