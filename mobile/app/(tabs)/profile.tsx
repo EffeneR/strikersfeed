@@ -4,6 +4,7 @@ import { router, useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@/lib/auth";
 import { getProfile, type ProfileView } from "@/lib/profiles";
+import { getFollowCounts } from "@/lib/follows";
 import { Avatar } from "@/components/Avatar";
 import { Screen } from "@/components/ui";
 import { colors, font, radius, spacing } from "@/theme/tokens";
@@ -18,8 +19,8 @@ function Row({
   onPress: () => void;
 }) {
   return (
-    <Pressable onPress={onPress} style={({ pressed }) => [styles.row, pressed && { backgroundColor: colors.surface }]}>
-      <Ionicons name={icon} size={18} color={colors.textMuted} />
+    <Pressable onPress={onPress} style={({ pressed }) => [styles.row, pressed && { backgroundColor: colors.surfaceHover }]}>
+      <Ionicons name={icon} size={18} color={colors.accent} />
       <Text style={styles.rowLabel}>{label}</Text>
       <Ionicons name="chevron-forward" size={16} color={colors.textMuted} style={{ marginLeft: "auto" }} />
     </Pressable>
@@ -31,11 +32,13 @@ export default function Profile() {
   const uid = session?.user?.id ?? null;
   const email = session?.user?.email ?? "";
   const [profile, setProfile] = useState<ProfileView | null>(null);
+  const [counts, setCounts] = useState({ followers: 0, following: 0 });
 
-  // Refetch on focus so edits made in Settings → Edit profile show on return.
   useFocusEffect(
     useCallback(() => {
-      if (uid) void getProfile(uid).then(setProfile);
+      if (!uid) return;
+      void getProfile(uid).then(setProfile);
+      void getFollowCounts(uid).then(setCounts);
     }, [uid]),
   );
 
@@ -46,16 +49,31 @@ export default function Profile() {
     <Screen>
       <ScrollView contentContainerStyle={{ padding: spacing.lg }}>
         <View style={styles.head}>
-          <Avatar name={name} url={profile?.avatarUrl} size={64} />
+          <View style={{ position: "relative" }}>
+            <Avatar name={name} url={profile?.avatarUrl} size={72} />
+            {profile?.steamVerified && <View style={styles.steamRing} />}
+          </View>
           <View style={{ flex: 1 }}>
-            <Text style={styles.name} numberOfLines={1}>
-              {name}
-            </Text>
+            <View style={styles.nameLine}>
+              <Text style={styles.name} numberOfLines={1}>
+                {name}
+              </Text>
+              {profile?.steamVerified && <Ionicons name="shield-checkmark" size={16} color={colors.accent} />}
+            </View>
             <Text style={styles.handle} numberOfLines={1}>
               @{handle}
             </Text>
+            <View style={styles.countsRow}>
+              <Text style={styles.count}>
+                <Text style={styles.countNum}>{counts.followers}</Text> Followers
+              </Text>
+              <Text style={styles.count}>
+                <Text style={styles.countNum}>{counts.following}</Text> Following
+              </Text>
+            </View>
           </View>
         </View>
+
         {profile?.bio ? <Text style={styles.bio}>{profile.bio}</Text> : null}
 
         <Pressable style={styles.editBtn} onPress={() => router.push("/settings/profile")}>
@@ -75,12 +93,41 @@ export default function Profile() {
 
 const styles = StyleSheet.create({
   head: { flexDirection: "row", alignItems: "center", gap: spacing.lg },
-  name: { color: colors.text, fontSize: font.size.lg, fontWeight: "700" },
+  steamRing: {
+    position: "absolute",
+    top: -3,
+    left: -3,
+    right: -3,
+    bottom: -3,
+    borderRadius: 999,
+    borderWidth: 1.5,
+    borderColor: colors.accentRing,
+  },
+  nameLine: { flexDirection: "row", alignItems: "center", gap: 6 },
+  name: { color: colors.text, fontSize: font.size.xl, fontWeight: "800", flexShrink: 1 },
   handle: { color: colors.textMuted, fontSize: font.size.sm, marginTop: 2 },
-  bio: { color: colors.text, fontSize: font.size.sm, marginTop: spacing.md, lineHeight: 20 },
-  editBtn: { marginTop: spacing.lg, borderColor: colors.border, borderWidth: 1, borderRadius: radius.pill, paddingVertical: 10, alignItems: "center" },
-  editText: { color: colors.text, fontWeight: "600", fontSize: font.size.sm },
-  group: { marginTop: spacing.xl, backgroundColor: colors.backgroundSecondary, borderColor: colors.border, borderWidth: 1, borderRadius: radius.lg, overflow: "hidden" },
+  countsRow: { flexDirection: "row", gap: spacing.lg, marginTop: spacing.sm },
+  count: { color: colors.textMuted, fontSize: font.size.sm },
+  countNum: { color: colors.text, fontWeight: "800" },
+  bio: { color: colors.text, fontSize: font.size.sm, marginTop: spacing.lg, lineHeight: 20 },
+  editBtn: {
+    marginTop: spacing.lg,
+    borderColor: colors.border,
+    borderWidth: 1,
+    borderRadius: radius.pill,
+    paddingVertical: 11,
+    alignItems: "center",
+    backgroundColor: colors.surface,
+  },
+  editText: { color: colors.text, fontWeight: "700", fontSize: font.size.sm },
+  group: {
+    marginTop: spacing.xl,
+    backgroundColor: colors.backgroundSecondary,
+    borderColor: colors.border,
+    borderWidth: 1,
+    borderRadius: radius.lg,
+    overflow: "hidden",
+  },
   row: { flexDirection: "row", alignItems: "center", gap: spacing.md, paddingHorizontal: spacing.lg, paddingVertical: 14 },
   rowLabel: { color: colors.text, fontSize: font.size.md },
 });

@@ -7,6 +7,7 @@ import { searchProfiles, type ProfileView } from "@/lib/profiles";
 import { useAuth } from "@/lib/auth";
 import { PostCard } from "@/components/PostCard";
 import { Avatar } from "@/components/Avatar";
+import { ScreenHeader } from "@/components/design";
 import { Screen } from "@/components/ui";
 import { colors, font, radius, spacing } from "@/theme/tokens";
 
@@ -46,6 +47,7 @@ export default function Explore() {
 
   return (
     <Screen>
+      <ScreenHeader title="Explore" kicker="Discover" />
       <View style={styles.searchWrap}>
         <Ionicons name="search" size={16} color={colors.textMuted} />
         <TextInput

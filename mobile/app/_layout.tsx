@@ -14,15 +14,16 @@ import {
   Inter_700Bold,
 } from "@expo-google-fonts/inter";
 import { AuthProvider } from "@/lib/auth";
-import { colors } from "@/theme/tokens";
+import { colors, font } from "@/theme/tokens";
 
-/** Shared options for a pushed stack screen with a themed back header. */
+/** Shared options for a pushed stack screen with a themed, condensed back header. */
 function header(title: string) {
   return {
     headerShown: true,
-    title,
+    title: title.toUpperCase(),
     headerStyle: { backgroundColor: colors.background },
     headerTintColor: colors.text,
+    headerTitleStyle: { fontFamily: font.family.display, fontSize: 19 },
     headerShadowVisible: false,
     animation: "slide_from_right" as const,
   };

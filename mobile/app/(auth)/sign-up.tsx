@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { KeyboardAvoidingView, Platform, View } from "react-native";
+import { KeyboardAvoidingView, Platform, Text, View } from "react-native";
 import { Link, router } from "expo-router";
 import { useAuth } from "@/lib/auth";
 import { SteamButton } from "@/components/SteamButton";
@@ -32,6 +32,9 @@ export default function SignUp() {
         behavior={Platform.OS === "ios" ? "padding" : undefined}
         style={{ flex: 1, justifyContent: "center", padding: spacing.xl }}
       >
+        <Text style={{ color: colors.accent, fontSize: 10, fontWeight: "800", letterSpacing: 2, marginBottom: 6 }}>
+          SOCIAL · COMPETE · BELONG
+        </Text>
         <Heading>Join StrikersFeed</Heading>
         <Muted>Create your account to join the community.</Muted>
         <View style={{ height: spacing.xl }} />
