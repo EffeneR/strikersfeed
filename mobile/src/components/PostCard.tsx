@@ -99,8 +99,9 @@ export function PostCard({
   return (
     <Pressable onPress={openPost} style={styles.card}>
       <View style={styles.authorRow}>
-        <Pressable onPress={openAuthor} hitSlop={6}>
+        <Pressable onPress={openAuthor} hitSlop={6} style={{ position: "relative" }}>
           <Avatar name={post.author.displayName} url={post.author.avatarUrl} size={38} />
+          {post.author.steamVerified && <View style={styles.steamRing} />}
         </Pressable>
         <Pressable onPress={openAuthor} style={{ flex: 1 }} hitSlop={6}>
           <View style={styles.nameLine}>
@@ -177,6 +178,16 @@ export function PostCard({
 const styles = StyleSheet.create({
   card: { borderBottomColor: colors.border, borderBottomWidth: 1, padding: spacing.lg },
   authorRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
+  steamRing: {
+    position: "absolute",
+    top: -2,
+    left: -2,
+    right: -2,
+    bottom: -2,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.accentRing,
+  },
   nameLine: { flexDirection: "row", alignItems: "center", gap: 5 },
   name: { color: colors.text, fontWeight: "700", fontSize: font.size.sm, flexShrink: 1 },
   handle: { color: colors.textMuted, fontSize: font.size.xs, flexShrink: 1 },

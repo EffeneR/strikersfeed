@@ -1,14 +1,7 @@
 import type { ReactNode } from "react";
-import {
-  ActivityIndicator,
-  Pressable,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-  type TextInputProps,
-} from "react-native";
+import { StyleSheet, Text, TextInput, View, type TextInputProps } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { GradientButton } from "./design";
 import { colors, font, radius, spacing } from "@/theme/tokens";
 
 export function Screen({ children }: { children: ReactNode }) {
@@ -19,6 +12,7 @@ export function Screen({ children }: { children: ReactNode }) {
   );
 }
 
+/** Condensed uppercase display heading (Barlow). */
 export function Heading({ children }: { children: ReactNode }) {
   return <Text style={styles.heading}>{children}</Text>;
 }
@@ -52,19 +46,7 @@ export function PrimaryButton({
   loading?: boolean;
   disabled?: boolean;
 }) {
-  return (
-    <Pressable
-      onPress={onPress}
-      disabled={disabled || loading}
-      style={({ pressed }) => [
-        styles.button,
-        (disabled || loading) && { opacity: 0.5 },
-        pressed && { opacity: 0.85 },
-      ]}
-    >
-      {loading ? <ActivityIndicator color={colors.black} /> : <Text style={styles.buttonText}>{title}</Text>}
-    </Pressable>
-  );
+  return <GradientButton title={title} onPress={onPress} loading={loading} disabled={disabled} />;
 }
 
 export function ErrorText({ children }: { children: ReactNode }) {
@@ -73,7 +55,13 @@ export function ErrorText({ children }: { children: ReactNode }) {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
-  heading: { color: colors.text, fontSize: font.size.xxl, fontWeight: "700" },
+  heading: {
+    color: colors.text,
+    fontFamily: font.family.display,
+    fontSize: 34,
+    textTransform: "uppercase",
+    letterSpacing: 0.3,
+  },
   muted: { color: colors.textMuted, fontSize: font.size.md },
   label: { color: colors.text, fontSize: font.size.sm, fontWeight: "500", marginBottom: 6 },
   input: {
@@ -84,14 +72,7 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: font.size.md,
     paddingHorizontal: spacing.md,
-    paddingVertical: 12,
+    paddingVertical: 13,
   },
-  button: {
-    backgroundColor: colors.accent,
-    borderRadius: radius.pill,
-    paddingVertical: 14,
-    alignItems: "center",
-  },
-  buttonText: { color: colors.black, fontSize: font.size.md, fontWeight: "700" },
   error: { color: colors.live, fontSize: font.size.sm, marginTop: 4 },
 });
